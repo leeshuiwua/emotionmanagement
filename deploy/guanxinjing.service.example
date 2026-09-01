@@ -1,0 +1,24 @@
+[Unit]
+Description=Guan Xin Jing emotion awareness service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=guanxinjing
+Group=guanxinjing
+WorkingDirectory=/opt/guanxinjing
+EnvironmentFile=/opt/guanxinjing/.env
+ExecStart=/usr/bin/node /opt/guanxinjing/dist/server/index.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/guanxinjing/data
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
+

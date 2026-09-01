@@ -1,0 +1,27 @@
+# Replace example.com and certificate paths before enabling this file.
+upstream guanxinjing_api {
+    server 127.0.0.1:3102;
+    keepalive 16;
+}
+
+server {
+    listen 3002 ssl http2;
+    server_name example.com;
+    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+    location /admin/ {
+        proxy_pass http://guanxinjing_api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    location /admin-api/ {
+        proxy_pass http://guanxinjing_api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    location = /healthz { proxy_pass http://guanxinjing_api; }
+    location / { return 302 /admin/; }
+}
