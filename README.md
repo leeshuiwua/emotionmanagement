@@ -41,10 +41,26 @@ BOOTSTRAP_ADMIN_PASSWORD=<至少12位强密码>
 构建并启动：
 
 ```bash
+# 必须在 Linux 服务器上安装，不要从 macOS/Windows 复制 node_modules
+node --version
 npm ci
 npm run build
 npm start
 ```
+
+### Linux 启动时提示 `Could not locate the bindings file`
+
+`better-sqlite3` 是原生模块，`node_modules` 不能跨操作系统或 Node.js ABI 复用。仓库使用 Node.js 22 或更高版本，并精确锁定 `better-sqlite3 13.0.3`。在服务器项目目录执行：
+
+```bash
+git pull origin main
+npm ci
+node -e "const Database=require('better-sqlite3'); const db=new Database(':memory:'); console.log(db.prepare('select 1 as ok').get())"
+npm run build
+npm start
+```
+
+`npm ci` 会按 `package-lock.json` 重建整个 `node_modules`。如果安装阶段需要本地编译，Ubuntu/Debian 可先执行 `sudo apt-get install -y python3 make g++`，再重试 `npm ci`。
 
 使用 `deploy/nginx.conf.example` 将公网 HTTPS `3002` 反向代理到 `127.0.0.1:3102`。不要直接把 Express 端口暴露到公网。
 

@@ -5,6 +5,24 @@ import Database from "better-sqlite3";
 
 export type SqliteDb = Database.Database;
 
+const SQLITE_BINDING_MARKERS = [
+	"Could not locate the bindings file",
+	"better_sqlite3.node",
+	"NODE_MODULE_VERSION",
+];
+
+export function sqliteNativeBindingHint(error: unknown): string | null {
+	const detail = error instanceof Error ? error.message : String(error);
+	if (!SQLITE_BINDING_MARKERS.some((marker) => detail.includes(marker))) {
+		return null;
+	}
+	return [
+		`better-sqlite3 原生模块与当前服务器不匹配（Node ${process.version}, ${process.platform}/${process.arch}）。`,
+		"请勿从其他系统复制 node_modules；在服务器项目目录执行 `npm ci`，然后执行 `npm run build`。",
+		"若 npm ci 报原生编译错误，请先安装 Python 3、make 和 C/C++ 编译器后重试。",
+	].join(" ");
+}
+
 // 数据库 schema：
 // - admins / admin_sessions：管理员与登录会话
 // - setting_versions：仅保留 model（日常+安全两个 role）
@@ -111,7 +129,14 @@ CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_events(created_at DESC);
 export function openDatabase(path: string): SqliteDb {
 	if (path !== ":memory:")
 		mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-	const db = new Database(path);
+	let db: SqliteDb;
+	try {
+		db = new Database(path);
+	} catch (error) {
+		const hint = sqliteNativeBindingHint(error);
+		if (hint) throw new Error(hint, { cause: error });
+		throw error;
+	}
 	db.pragma("journal_mode = WAL");
 	db.pragma("foreign_keys = ON");
 	db.pragma("busy_timeout = 5000");
