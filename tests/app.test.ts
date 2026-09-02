@@ -55,6 +55,31 @@ afterEach(async () => {
 });
 
 describe("health and auth", () => {
+	it("sets Secure cookies only when auto mode sees an HTTPS request", async () => {
+		const autoConfig: AppConfig = { ...config, cookieSecure: "auto" };
+		const app = await createApp(autoConfig);
+		handles.push({ app, db: app.db, cookie: "", csrf: "" });
+
+		const httpLogin = await request(app.app)
+			.post("/admin-api/v1/auth/login")
+			.send({
+				username: "admin",
+				password: config.bootstrapAdminPassword as string,
+			});
+		expect(String(httpLogin.headers["set-cookie"]?.[0])).not.toContain(
+			"Secure",
+		);
+
+		const httpsLogin = await request(app.app)
+			.post("/admin-api/v1/auth/login")
+			.set("x-forwarded-proto", "https")
+			.send({
+				username: "admin",
+				password: config.bootstrapAdminPassword as string,
+			});
+		expect(String(httpsLogin.headers["set-cookie"]?.[0])).toContain("Secure");
+	});
+
 	it("serves /healthz without auth", async () => {
 		const { app } = await boot();
 		const res = await request(app.app).get("/healthz");

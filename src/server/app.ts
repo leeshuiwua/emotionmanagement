@@ -26,6 +26,9 @@ export async function createApp(
 	const app = express();
 	app.disable("x-powered-by");
 	app.set("env", config.env);
+	// HTTPS 由同机 Nginx 终止时，只信任回环地址的 X-Forwarded-Proto。
+	// 这让 Cookie 的 auto 模式能区分 HTTPS 反代与 HTTP 直连。
+	app.set("trust proxy", "loopback");
 	app.use(helmet({ contentSecurityPolicy: false }));
 	app.use(express.json({ limit: "256kb" }));
 	app.use(cookieParser());

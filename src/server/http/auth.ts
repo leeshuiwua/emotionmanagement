@@ -13,6 +13,10 @@ import { audit, type SqliteDb } from "../db.js";
 
 export const SESSION_COOKIE = "gxj_session";
 
+function shouldUseSecureCookie(req: Request, config: AppConfig): boolean {
+	return config.cookieSecure === "auto" ? req.secure : config.cookieSecure;
+}
+
 const LoginSchema = z.object({
 	username: z.string().min(3),
 	password: z.string().min(8),
@@ -148,9 +152,10 @@ export function createAuthRouter(db: SqliteDb, config: AppConfig): Router {
 		db.prepare(
 			"INSERT INTO admin_sessions(id, admin_id, csrf_token, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
 		).run(id, admin.id, csrfToken, expires.toISOString(), now.toISOString());
+		const secure = shouldUseSecureCookie(req, config);
 		res.cookie(SESSION_COOKIE, id, {
 			httpOnly: true,
-			secure: config.cookieSecure,
+			secure,
 			sameSite: "strict",
 			path: "/",
 			expires,
@@ -174,7 +179,12 @@ export function createAuthRouter(db: SqliteDb, config: AppConfig): Router {
 	router.post("/logout", requireAdmin(db, true), (req, res) => {
 		const id = req.cookies?.[SESSION_COOKIE];
 		if (id) db.prepare("DELETE FROM admin_sessions WHERE id = ?").run(id);
-		res.clearCookie(SESSION_COOKIE, { path: "/" });
+		res.clearCookie(SESSION_COOKIE, {
+			httpOnly: true,
+			secure: shouldUseSecureCookie(req, config),
+			sameSite: "strict",
+			path: "/",
+		});
 		res.status(204).end();
 	});
 

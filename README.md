@@ -33,7 +33,7 @@ PORT=3102
 PUBLIC_BASE_URL=https://your-domain.example:3002
 DATABASE_PATH=./data/guanxinjing.db
 MASTER_KEY=<32字节随机值的Base64>
-COOKIE_SECURE=true
+COOKIE_SECURE=auto
 BOOTSTRAP_ADMIN_USERNAME=admin
 BOOTSTRAP_ADMIN_PASSWORD=<至少12位强密码>
 ```
@@ -47,6 +47,8 @@ npm start
 ```
 
 使用 `deploy/nginx.conf.example` 将公网 HTTPS `3002` 反向代理到 `127.0.0.1:3102`。不要直接把 Express 端口暴露到公网。
+
+`COOKIE_SECURE=auto` 会在 HTTPS 反向代理访问时设置 `Secure` Cookie，在受信网络内通过 HTTP 直连时使用普通 Cookie。若服务只允许 HTTPS，可设为 `true`；仅本机开发也可设为 `false`。修改后需重启服务，并清除浏览器中旧的 `gxj_session` Cookie 后重新登录。
 
 ## 验证
 
