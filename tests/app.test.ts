@@ -80,6 +80,30 @@ describe("health and auth", () => {
 		expect(String(httpsLogin.headers["set-cookie"]?.[0])).toContain("Secure");
 	});
 
+	it("treats the legacy true setting as protocol-aware for existing deployments", async () => {
+		const app = await createApp({ ...config, cookieSecure: true });
+		handles.push({ app, db: app.db, cookie: "", csrf: "" });
+		const login = await request(app.app)
+			.post("/admin-api/v1/auth/login")
+			.send({
+				username: "admin",
+				password: config.bootstrapAdminPassword as string,
+			});
+		expect(String(login.headers["set-cookie"]?.[0])).not.toContain("Secure");
+	});
+
+	it("supports explicitly forcing Secure cookies", async () => {
+		const app = await createApp({ ...config, cookieSecure: "force" });
+		handles.push({ app, db: app.db, cookie: "", csrf: "" });
+		const login = await request(app.app)
+			.post("/admin-api/v1/auth/login")
+			.send({
+				username: "admin",
+				password: config.bootstrapAdminPassword as string,
+			});
+		expect(String(login.headers["set-cookie"]?.[0])).toContain("Secure");
+	});
+
 	it("serves /healthz without auth", async () => {
 		const { app } = await boot();
 		const res = await request(app.app).get("/healthz");

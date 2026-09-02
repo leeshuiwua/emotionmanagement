@@ -70,7 +70,9 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
 				body: JSON.stringify({ username, password }),
 			});
 			setCsrfToken(session.csrfToken);
-			onLogin(session);
+			// 不只信任登录响应：立即用 Cookie 复核会话，避免出现假登录界面。
+			const verified = await api<Session>("/auth/session");
+			onLogin(verified);
 		} catch (reason) {
 			setError(reason instanceof Error ? reason.message : t("error"));
 		} finally {
@@ -1379,7 +1381,16 @@ export function App() {
 	useEffect(() => {
 		if (sessionQuery.data) setCsrfToken(sessionQuery.data.csrfToken);
 	}, [sessionQuery.data]);
-	const session = sessionQuery.data;
+	useEffect(() => {
+		const clearExpiredSession = () => {
+			setCsrfToken("");
+			client.setQueryData(["session"], null);
+		};
+		window.addEventListener("gxj:unauthorized", clearExpiredSession);
+		return () =>
+			window.removeEventListener("gxj:unauthorized", clearExpiredSession);
+	}, [client]);
+	const session = sessionQuery.isError ? undefined : sessionQuery.data;
 	if (sessionQuery.isLoading)
 		return (
 			<div className="loading-screen">

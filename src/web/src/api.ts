@@ -1,5 +1,16 @@
 let csrfToken = "";
 
+export class ApiError extends Error {
+	constructor(
+		message: string,
+		readonly status: number,
+		readonly code?: string,
+	) {
+		super(message);
+		this.name = "ApiError";
+	}
+}
+
 export function setCsrfToken(value: string) {
 	csrfToken = value;
 }
@@ -19,10 +30,16 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 	});
 	if (response.status === 204) return undefined as T;
 	const body = await response.json().catch(() => ({}));
-	if (!response.ok)
-		throw new Error(
+	if (!response.ok) {
+		if (response.status === 401 && path !== "/auth/login") {
+			window.dispatchEvent(new Event("gxj:unauthorized"));
+		}
+		throw new ApiError(
 			body.error?.message ?? body.message ?? `HTTP ${response.status}`,
+			response.status,
+			body.error?.code,
 		);
+	}
 	return body as T;
 }
 

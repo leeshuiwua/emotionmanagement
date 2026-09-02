@@ -11,7 +11,7 @@ const EnvSchema = z.object({
 	DATABASE_PATH: z.string().default("./data/guanxinjing.db"),
 	PUBLIC_BASE_URL: z.string().url().default("http://localhost:3002"),
 	MASTER_KEY: z.string().optional(),
-	COOKIE_SECURE: z.enum(["true", "false", "auto"]).default("auto"),
+	COOKIE_SECURE: z.enum(["true", "false", "auto", "force"]).default("auto"),
 	BOOTSTRAP_ADMIN_USERNAME: z.string().min(3).default("admin"),
 	BOOTSTRAP_ADMIN_PASSWORD: z.string().min(12).optional(),
 });
@@ -23,7 +23,7 @@ export type AppConfig = {
 	databasePath: string;
 	publicBaseUrl: string;
 	masterKey: Buffer;
-	cookieSecure: boolean | "auto";
+	cookieSecure: boolean | "auto" | "force";
 	bootstrapAdminUsername: string;
 	bootstrapAdminPassword?: string;
 };
@@ -49,7 +49,9 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
 		publicBaseUrl: env.PUBLIC_BASE_URL.replace(/\/$/, ""),
 		masterKey: key,
 		cookieSecure:
-			env.COOKIE_SECURE === "auto" ? "auto" : env.COOKIE_SECURE === "true",
+			env.COOKIE_SECURE === "auto" || env.COOKIE_SECURE === "force"
+				? env.COOKIE_SECURE
+				: env.COOKIE_SECURE === "true",
 		bootstrapAdminUsername: env.BOOTSTRAP_ADMIN_USERNAME,
 		bootstrapAdminPassword: env.BOOTSTRAP_ADMIN_PASSWORD,
 	};

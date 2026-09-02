@@ -14,7 +14,11 @@ import { audit, type SqliteDb } from "../db.js";
 export const SESSION_COOKIE = "gxj_session";
 
 function shouldUseSecureCookie(req: Request, config: AppConfig): boolean {
-	return config.cookieSecure === "auto" ? req.secure : config.cookieSecure;
+	if (config.cookieSecure === false) return false;
+	if (config.cookieSecure === "force") return true;
+	// `true` 是旧版部署示例中的默认值，为避免已有 HTTP 部署登录后
+	// 丢失 Cookie，与 auto 一样按当前请求协议决定。
+	return req.secure;
 }
 
 const LoginSchema = z.object({
