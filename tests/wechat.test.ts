@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	activeLoginSessionCount,
 	createWechatPersonalAdapter,
+	extractInboundContent,
 	extractInboundText,
 	getWechatLoginState,
 	type IlinkMessage,
@@ -28,6 +29,28 @@ describe("extractInboundText", () => {
 			item_list: [{ type: 1, text_item: { text: "不该处理" } }],
 		};
 		expect(extractInboundText(msg)).toBe("");
+	});
+
+	it("returns a transcribed voice USER message", () => {
+		const msg: IlinkMessage = {
+			message_type: 1,
+			from_user_id: "u1",
+			item_list: [{ type: 3, voice_item: { text: "我今天感觉压力有点大" } }],
+		};
+		expect(extractInboundContent(msg)).toEqual({
+			text: "我今天感觉压力有点大",
+			messageType: "voice",
+		});
+		expect(extractInboundText(msg)).toBe("我今天感觉压力有点大");
+	});
+
+	it("returns empty when a voice message has no transcript", () => {
+		expect(
+			extractInboundContent({
+				message_type: 1,
+				item_list: [{ type: 3, voice_item: {} }],
+			}),
+		).toBeNull();
 	});
 
 	it("prefixes quoted reference content", () => {
@@ -135,6 +158,45 @@ describe("createWechatPersonalAdapter", () => {
 
 		adapter.stop();
 		globalThis.fetch = original;
+	});
+
+	it("processes a transcribed voice message through the normal reply flow", async () => {
+		const { fn, calls } = mockFetch({
+			getupdates: {
+				ret: 0,
+				msgs: [
+					{
+						message_id: "voice-1",
+						message_type: 1,
+						from_user_id: "friend1",
+						context_token: "ctx-voice",
+						item_list: [{ type: 3, voice_item: { text: "我有点焦虑" } }],
+					},
+				],
+				get_updates_buf: "voice-cursor",
+			},
+		});
+		const original = globalThis.fetch;
+		globalThis.fetch = fn as unknown as typeof fetch;
+		try {
+			let receivedMeta: { messageType?: string } | undefined;
+			const adapter = createWechatPersonalAdapter(
+				{ token: "tok" },
+				{
+					onMessage: async (_id, text, meta) => {
+						receivedMeta = meta;
+						return `回复:${text}`;
+					},
+					log: () => undefined,
+				},
+			);
+			await adapter.pollOnce();
+			expect(receivedMeta?.messageType).toBe("voice");
+			expect(calls.some((call) => call.endpoint === "sendmessage")).toBe(true);
+			adapter.stop();
+		} finally {
+			globalThis.fetch = original;
+		}
 	});
 
 	it("ignores duplicate message_id within a session", async () => {

@@ -307,7 +307,7 @@ describe("conversation archive and psychological profiles", () => {
 			channel,
 			"wx-contact-a",
 			"我想先分析原因，然后安排明天的计划。",
-			{ messageId: "m-2" },
+			{ messageId: "m-2", messageType: "voice" },
 		);
 
 		const records = await request(app.app)
@@ -319,6 +319,7 @@ describe("conversation archive and psychological profiles", () => {
 		expect(records.body.total).toBe(2);
 		expect(records.body.items).toHaveLength(1);
 		expect(records.body.items[0].contactLabel).toBe("wx-co…ct-a");
+		expect(records.body.items[0].messageType).toBe("voice");
 		expect(records.body.items[0]).toHaveProperty("emotionScore");
 
 		const profiles = await request(app.app)

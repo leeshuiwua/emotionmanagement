@@ -19,7 +19,11 @@ export async function handleInbound(
 	channel: ImChannel,
 	externalId: string,
 	text: string,
-	meta: { contextToken?: string; messageId?: string | number } = {},
+	meta: {
+		contextToken?: string;
+		messageId?: string | number;
+		messageType?: "text" | "voice";
+	} = {},
 ): Promise<string> {
 	const trimmed = String(text ?? "")
 		.trim()
@@ -31,18 +35,20 @@ export async function handleInbound(
 	const dedupeKey = `wechat:${channel.id}:${messageId}`;
 	const now = nowIso();
 	const inboundId = randomUUID();
+	const messageType = meta.messageType === "voice" ? "voice" : "text";
 
 	const inserted = db
 		.prepare(
 			`INSERT OR IGNORE INTO inbound_messages
 			(id, dedupe_key, app_id, open_id, message_type, content, raw_xml, received_at)
-			VALUES (?, ?, ?, ?, 'text', ?, ?, ?)`,
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		)
 		.run(
 			inboundId,
 			dedupeKey,
 			channel.id,
 			externalId,
+			messageType,
 			trimmed,
 			JSON.stringify({
 				source: "wechat",

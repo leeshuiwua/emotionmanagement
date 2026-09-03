@@ -13,6 +13,7 @@ type ConversationRow = {
 	channel_name: string;
 	wechat_account_id: string | null;
 	contact_id: string;
+	message_type: string;
 	user_text: string;
 	assistant_text: string | null;
 	safety_level: string;
@@ -114,7 +115,7 @@ const BASE_FROM = `FROM conversations c
   LEFT JOIN im_channels ch ON ch.id = m.app_id`;
 const BASE_SELECT = `SELECT c.id, m.app_id AS channel_id, COALESCE(ch.name, '已删除渠道') AS channel_name,
   json_extract(ch.config, '$.userId') AS wechat_account_id, m.open_id AS contact_id,
-  c.user_text, c.assistant_text, c.safety_level, c.created_at ${BASE_FROM}`;
+  m.message_type, c.user_text, c.assistant_text, c.safety_level, c.created_at ${BASE_FROM}`;
 
 export function listConversationRecords(
 	db: SqliteDb,
@@ -140,6 +141,7 @@ export function listConversationRecords(
 			wechatAccountId: row.wechat_account_id,
 			contactId: row.contact_id,
 			contactLabel: maskId(row.contact_id),
+			messageType: row.message_type === "voice" ? "voice" : "text",
 			userText: row.user_text,
 			assistantText: row.assistant_text,
 			safetyLevel: row.safety_level,

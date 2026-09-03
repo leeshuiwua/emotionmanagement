@@ -86,6 +86,7 @@ export type ConversationRecord = {
 	wechatAccountId: string | null;
 	contactId: string;
 	contactLabel: string;
+	messageType: "text" | "voice";
 	userText: string;
 	assistantText: string | null;
 	safetyLevel: string;

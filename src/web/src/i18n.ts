@@ -64,12 +64,12 @@ const resources = {
 			noWechatChannel: "还没有微信渠道，添加后即可扫码登录。",
 			personalSessionTitle: "个人微信本地会话",
 			personalSessionHelp:
-				"登录成功后，观心镜只处理好友发来的文本私聊；群聊、图片、语音和自己发送的消息不会进入分析。",
+				"登录成功后，观心镜处理好友发来的文本和已转写语音私聊；群聊、图片、未转写语音和自己发送的消息不会进入分析。",
 			loginAccount: "绑定账号",
 			sessionStorage: "会话凭据",
 			localOnly: "本机存储 · 不上传",
 			messageScope: "消息范围",
-			privateTextOnly: "好友文本私聊",
+			privateTextOnly: "好友文本与语音私聊",
 			personalWechatRisk:
 				"个人微信没有官方机器人 API，扫码兼容性由微信控制。建议使用专用微信号。",
 			logoutWechat: "退出微信",
@@ -115,7 +115,8 @@ const resources = {
 			analysedContacts: "个对话对象",
 			noConversationRecords: "这段时间还没有对话",
 			noConversationHelp:
-				"收到微信好友的文本私聊后，对话记录与画像会出现在这里。",
+				"收到微信好友的文本或已转写语音私聊后，对话记录与画像会出现在这里。",
+			voiceTranscript: "语音转写",
 			messagesUnit: "条消息",
 			conversationRecords: "对话记录",
 			recordsUnit: "条记录",
@@ -257,7 +258,8 @@ const resources = {
 			analysedContacts: "contacts analysed",
 			noConversationRecords: "No conversations in this period",
 			noConversationHelp:
-				"Text chats from WeChat contacts will appear here after they are received.",
+				"Text and transcribed voice chats from WeChat contacts will appear here after they are received.",
+			voiceTranscript: "Voice transcript",
 			messagesUnit: "messages",
 			conversationRecords: "Conversation records",
 			recordsUnit: "records",

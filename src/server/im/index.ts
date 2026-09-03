@@ -23,11 +23,16 @@ function hooksFor(db: SqliteDb, config: AppConfig, ch: ImChannel) {
 		onMessage: (
 			externalId: string,
 			text: string,
-			meta: { contextToken?: string; raw?: IlinkMessage },
+			meta: {
+				contextToken?: string;
+				raw?: IlinkMessage;
+				messageType: "text" | "voice";
+			},
 		) =>
 			handleInbound(db, config, ch, externalId, text, {
 				contextToken: meta.contextToken,
 				messageId: meta.raw?.message_id,
+				messageType: meta.messageType,
 			}),
 		persistCursor: (cursor: string) => {
 			try {

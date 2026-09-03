@@ -1029,6 +1029,11 @@ function ConversationInsightsPage() {
 								<article key={record.id}>
 									<header>
 										<time>{new Date(record.createdAt).toLocaleString()}</time>
+										{record.messageType === "voice" && (
+											<span className="safety-chip">
+												{t("voiceTranscript")}
+											</span>
+										)}
 										<span
 											className={`emotion-chip ${record.emotionScore < 0 ? "negative" : record.emotionScore > 0 ? "positive" : ""}`}
 										>

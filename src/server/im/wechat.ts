@@ -3,7 +3,7 @@
 //    长轮询状态机（wait/scanned/need_verifycode/expired/redirect/confirmed…）换取 bot_token；
 //  - 收发消息：POST ilink/bot/getupdates 长轮询（get_updates_buf 游标），
 //    POST ilink/bot/sendmessage 回复（必须回传入站消息携带的 context_token）。
-// 仅支持文字消息；图片、语音、群聊均忽略。
+// 支持文字消息和微信已转写的语音消息；图片、未转写语音、群聊均忽略。
 
 import crypto from "node:crypto";
 
@@ -76,6 +76,7 @@ export type IlinkMessage = {
 export type IlinkItem = {
 	type?: number;
 	text_item?: { text?: string };
+	voice_item?: { text?: string };
 	ref_msg?: { title?: string; message_item?: IlinkItem };
 };
 
@@ -179,6 +180,9 @@ export function createIlinkClient({
 function bodyFromItemList(itemList?: IlinkItem[]): string {
 	if (!Array.isArray(itemList)) return "";
 	for (const item of itemList) {
+		if (item?.type === 3 && item.voice_item?.text != null) {
+			return String(item.voice_item.text);
+		}
 		if (item?.type === 1 && item.text_item?.text != null) {
 			const text = String(item.text_item.text);
 			const ref = item.ref_msg;
@@ -196,10 +200,29 @@ function bodyFromItemList(itemList?: IlinkItem[]): string {
 	return "";
 }
 
+export type InboundMessageContent = {
+	text: string;
+	messageType: "text" | "voice";
+};
+
+/** 解析 USER 消息内容；语音仅在 iLink 已提供转写文字时返回。 */
+export function extractInboundContent(
+	msg: IlinkMessage,
+): InboundMessageContent | null {
+	if (msg?.message_type !== 1 || !Array.isArray(msg.item_list)) return null;
+	for (const item of msg.item_list) {
+		if (item?.type === 3) {
+			const text = String(item.voice_item?.text ?? "").trim();
+			if (text) return { text, messageType: "voice" };
+		}
+	}
+	const text = bodyFromItemList(msg.item_list).trim();
+	return text ? { text, messageType: "text" } : null;
+}
+
 /** 仅处理 USER 消息（message_type=1）；BOT 自己发出的消息返回空串 */
 export function extractInboundText(msg: IlinkMessage): string {
-	if (msg?.message_type !== 1) return "";
-	return bodyFromItemList(msg.item_list);
+	return extractInboundContent(msg)?.text ?? "";
 }
 
 /* ------------------------- 扫码登录状态机 ------------------------- */
@@ -479,7 +502,11 @@ export type WechatAdapterHooks = {
 	onMessage?: (
 		externalId: string,
 		text: string,
-		meta: { contextToken?: string; raw?: IlinkMessage },
+		meta: {
+			contextToken?: string;
+			raw?: IlinkMessage;
+			messageType: "text" | "voice";
+		},
 	) => Promise<string | undefined>;
 	persistCursor?: (cursor: string) => void;
 	onSessionExpired?: (err: Error) => void;
@@ -527,14 +554,16 @@ export function createWechatPersonalAdapter(
 		const userId = msg.from_user_id;
 		if (!userId || seen(msg.message_id)) return;
 		if (msg.message_type !== 1) return; // 只处理 USER 消息
-		const text = extractInboundText(msg);
-		if (!text) {
-			// 既无文字也无图片（语音等）→ 提示支持范围
+		const content = extractInboundContent(msg);
+		if (!content) {
 			if (msg.item_list?.length) {
+				const hasVoice = msg.item_list.some((item) => item?.type === 3);
 				await client
 					.sendText(
 						userId,
-						"目前仅支持文字消息，先发一句你想记录的心情吧～",
+						hasVoice
+							? "这条语音暂时没有获取到转写文字，请重试或改发文字～"
+							: "目前支持文字和已转写的语音消息，先发一句你想记录的心情吧～",
 						msg.context_token,
 					)
 					.catch((e: unknown) =>
@@ -546,8 +575,12 @@ export function createWechatPersonalAdapter(
 			return;
 		}
 		try {
-			const meta = { contextToken: msg.context_token, raw: msg };
-			const reply = await hooks.onMessage?.(userId, text, meta);
+			const meta = {
+				contextToken: msg.context_token,
+				raw: msg,
+				messageType: content.messageType,
+			};
+			const reply = await hooks.onMessage?.(userId, content.text, meta);
 			if (reply) {
 				await client.sendText(userId, reply, msg.context_token);
 			}
