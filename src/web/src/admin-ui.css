@@ -1,0 +1,563 @@
+/* Unified console theme. Loaded after feature styles; no business-state selectors. */
+:root {
+	--console-bg: #f3f6f5;
+	--console-surface: #ffffff;
+	--console-ink: #203831;
+	--console-muted: #667b73;
+	--console-line: #dfe7e3;
+	--console-accent: #237665;
+	--console-soft: #e5f1eb;
+}
+body {
+	background: var(--console-bg);
+	color: var(--console-ink);
+}
+.login-shell .brand {
+	color: var(--console-ink);
+}
+button {
+	white-space: nowrap;
+}
+button:focus-visible,
+summary:focus-visible,
+a:focus-visible {
+	outline: 3px solid #77af9f;
+	outline-offset: 3px;
+}
+.app-shell {
+	--blue: var(--console-accent);
+	--ink: var(--console-ink);
+	--muted: var(--console-muted);
+	--line: var(--console-line);
+	--ice: var(--console-soft);
+}
+.app-shell .sidebar {
+	width: 224px;
+	padding: 30px 16px 22px;
+	background: #eef3f0;
+	border-right: 1px solid var(--console-line);
+	color: var(--console-ink);
+	box-shadow: none;
+}
+.app-shell .sidebar-brand {
+	padding: 0 10px 34px;
+}
+.app-shell .sidebar .brand {
+	color: var(--console-ink);
+	font-size: 21px;
+}
+.app-shell .sidebar .brand-mark {
+	background: var(--console-accent);
+	box-shadow: none;
+	border-radius: 14px;
+	animation: none;
+}
+.app-shell .sidebar .brand small {
+	color: var(--console-muted);
+}
+.app-shell .side-navigation {
+	gap: 6px;
+}
+.app-shell .side-navigation button {
+	min-height: 46px;
+	color: #5b7067;
+	border-radius: 10px;
+	font-size: 14px;
+}
+.app-shell .side-navigation :where(button) > span {
+	color: #688477;
+}
+.app-shell .side-navigation button:hover {
+	background: #e1ebe5;
+	transform: none;
+	color: var(--console-ink);
+}
+.app-shell .side-navigation button.active {
+	background: var(--console-accent);
+	box-shadow: 0 4px 10px #23766514;
+	color: white;
+}
+.app-shell .side-navigation button.active > span {
+	color: white;
+}
+.app-shell .sidebar-foot {
+	border-color: var(--console-line);
+}
+.app-shell .sidebar-foot .language-switch {
+	color: var(--console-ink);
+	background: white;
+	border-color: var(--console-line);
+}
+.app-shell .sidebar-user > span {
+	background: #dce9e1;
+	color: var(--console-accent);
+}
+.app-shell .sidebar-user button {
+	color: var(--console-muted);
+	font-size: 12px;
+}
+.app-shell .workspace {
+	margin-left: 224px;
+}
+.app-shell .workspace-header {
+	height: 64px;
+	background: #ffffffed;
+	border-color: var(--console-line);
+	padding-inline: 32px;
+	backdrop-filter: blur(12px);
+}
+.app-shell .workspace-header strong {
+	color: var(--console-ink);
+	font-size: 14px;
+}
+.app-shell .workspace-kicker {
+	color: var(--console-muted);
+}
+.app-shell .workspace .content {
+	width: min(1240px, calc(100% - 64px));
+	padding: 32px 0 48px;
+}
+.app-shell .page-intro {
+	margin-bottom: 24px;
+}
+.app-shell .page-intro h1,
+.app-shell .ledger-page h1 {
+	font:
+		600 clamp(25px, 2.5vw, 32px) "Songti SC",
+		Georgia,
+		serif;
+	color: var(--console-ink);
+	letter-spacing: 0.02em;
+	margin: 8px 0;
+}
+.app-shell .page-intro p {
+	color: var(--console-muted);
+	line-height: 1.75;
+}
+.app-shell .eyebrow {
+	color: var(--console-accent);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+}
+.app-shell .buddha-mark {
+	display: none;
+}
+.app-shell
+	:is(
+		.channel-panel,
+		.form-panel,
+		.conversation-column,
+		.profile-panel,
+		.insight-filter,
+		.ledger-card,
+		.audit-list
+	) {
+	background: var(--console-surface);
+	border: 1px solid var(--console-line);
+	border-radius: 16px;
+	box-shadow: 0 3px 12px #20383104;
+}
+.app-shell :is(input, select, textarea) {
+	min-height: 42px;
+	border: 1px solid #cfdcd5;
+	border-radius: 8px;
+	color: var(--console-ink);
+	background: #fff;
+}
+.app-shell :is(input, select, textarea):focus {
+	outline: none;
+	border-color: var(--console-accent);
+	box-shadow: 0 0 0 3px #23766514;
+}
+.app-shell :is(.primary-button, .add-channel-button),
+.app-shell .ledger-page button[type="submit"] {
+	background: var(--console-accent);
+	color: white;
+	border: 1px solid var(--console-accent);
+	border-radius: 8px;
+	padding: 10px 16px;
+	min-height: 40px;
+	font-size: 13px;
+	font-weight: 600;
+	box-shadow: none;
+}
+.app-shell :is(.primary-button, .add-channel-button):hover:not(:disabled) {
+	background: #1c6152;
+}
+.app-shell :is(.secondary-button, .scan-button, .cancel-button, .row-action) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	gap: 6px;
+	min-height: 38px;
+	padding: 8px 14px;
+	border: 1px solid var(--console-line);
+	border-radius: 8px;
+	background: white;
+	color: #39584b;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.4;
+	box-shadow: none;
+}
+.app-shell
+	:is(.secondary-button, .scan-button, .row-action):hover:not(:disabled) {
+	background: #f0f6f2;
+	border-color: #adcbbd;
+}
+.app-shell .row-action.danger {
+	color: #a54d47;
+	border-color: #ecd9d6;
+}
+.app-shell .row-action.danger:hover:not(:disabled) {
+	background: #fcf2f0;
+	border-color: #d9ada7;
+}
+.app-shell .channel-panel-head {
+	padding: 22px 24px;
+	gap: 20px;
+	align-items: center;
+	flex-wrap: wrap;
+	border-color: var(--console-line);
+}
+.app-shell .channel-panel-head h2 {
+	font-size: 16px;
+	color: var(--console-ink);
+}
+.app-shell .channel-panel-head p {
+	color: var(--console-muted);
+	max-width: 560px;
+}
+.app-shell .channel-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	margin-left: auto;
+}
+.app-shell .channel-count {
+	color: var(--console-muted);
+	font:
+		11px "SFMono-Regular",
+		monospace;
+	white-space: nowrap;
+}
+.app-shell .channel-toolbar .add-channel-button {
+	margin: 0;
+}
+.app-shell .channel-row {
+	display: grid;
+	grid-template-columns: 46px minmax(0, 1fr) auto auto auto;
+	grid-template-areas: "icon identity state scan toggle" "actions actions actions actions actions";
+	align-items: center;
+	gap: 16px;
+	min-height: 0;
+	margin: 20px 24px;
+	padding: 20px;
+	border: 1px solid var(--console-line);
+	background: #fff;
+	border-radius: 12px;
+}
+.app-shell .wechat-channel-icon {
+	grid-area: icon;
+	background: var(--console-soft);
+	color: var(--console-accent);
+}
+.app-shell .channel-identity {
+	grid-area: identity;
+	min-width: 0;
+	gap: 6px;
+}
+.app-shell .channel-identity strong {
+	font-size: 15px;
+	color: var(--console-ink);
+}
+.app-shell .channel-identity span {
+	font-size: 12px;
+	color: var(--console-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.app-shell .channel-state {
+	grid-area: state;
+	display: block;
+	border-radius: 6px;
+	background: #f2f6f3;
+	padding: 6px 10px;
+	color: #526d5e;
+	font-size: 12px;
+}
+.app-shell .channel-row > .scan-button {
+	grid-area: scan;
+}
+.app-shell .channel-row > .toggle {
+	grid-area: toggle;
+	display: block;
+}
+.app-shell .channel-actions {
+	grid-area: actions;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
+	border-top: 1px solid #edf1ee;
+	padding-top: 14px;
+	min-width: 0;
+}
+.app-shell .channel-actions > :first-child {
+	margin-right: auto;
+}
+.app-shell .personal-session-panel {
+	padding: 24px;
+	grid-template-columns: 1fr;
+	gap: 28px;
+	background: #eaf2ed;
+	border: 1px solid #dce7df;
+	border-radius: 16px;
+	box-shadow: none;
+}
+.app-shell .session-orbit {
+	display: none;
+}
+.app-shell .session-orbit::before,
+.app-shell .session-orbit::after {
+	animation: none;
+}
+.app-shell .session-copy h2 {
+	font-size: 20px;
+	color: var(--console-ink);
+}
+.app-shell .session-copy p {
+	color: var(--console-muted);
+}
+.app-shell .panel-heading {
+	background: #f8faf8;
+	border-bottom-color: var(--console-line);
+}
+.app-shell .form-panel h2 {
+	color: var(--console-ink);
+}
+.app-shell .profile-panel::before {
+	display: none;
+}
+.app-shell .contact-ribbon button.active {
+	background: var(--console-soft);
+	border-color: #82af9c;
+	color: var(--console-accent);
+}
+.app-shell .analysis-disclaimer {
+	background: #f3f7f4;
+	color: var(--console-muted);
+	font-size: 12px;
+	line-height: 1.8;
+}
+.app-shell .profile-section h3 {
+	color: var(--console-ink);
+}
+.app-shell .message > span {
+	color: var(--console-accent);
+}
+.app-shell .ledger-totals article {
+	background: #eaf2ed;
+	border: 1px solid #dae7de;
+}
+.app-shell .ledger-totals strong {
+	color: var(--console-ink);
+	font-variant-numeric: tabular-nums;
+}
+.app-shell .ledger-page p {
+	color: var(--console-muted);
+}
+.app-shell .ledger-page button {
+	color: var(--console-ink);
+}
+.app-shell .ledger-table th {
+	background: #f6f9f7;
+	color: #5e7668;
+	font-size: 12px;
+	white-space: nowrap;
+}
+.app-shell .ledger-table td {
+	font-size: 13px;
+}
+.app-shell .action-bar {
+	flex-wrap: wrap;
+}
+.app-shell .hero-status {
+	background: #e4efe8;
+	color: var(--console-ink);
+	border-color: #cadfd1;
+	box-shadow: none;
+}
+.app-shell .hero-status h2 {
+	color: var(--console-ink);
+}
+.app-shell .metric {
+	background: white;
+	border: 1px solid var(--console-line);
+	border-radius: 14px;
+	box-shadow: none;
+}
+.app-shell .database-strip {
+	border-radius: 12px;
+	background: #eaf2ed;
+	border-color: var(--console-line);
+}
+.app-shell .metric strong {
+	color: var(--console-accent);
+	font-family: "SFMono-Regular", Consolas, monospace;
+	font-size: 36px;
+}
+.app-shell .hero-status {
+	border-radius: 16px;
+	min-height: 290px;
+}
+.app-shell .panel-heading {
+	background: transparent;
+	margin-bottom: 24px;
+	gap: 16px;
+}
+.app-shell .panel-heading h2 {
+	font:
+		600 18px "PingFang SC",
+		system-ui,
+		sans-serif;
+}
+.app-shell .audit-list {
+	overflow: hidden;
+}
+.app-shell .audit-list article {
+	padding: 20px 24px;
+	border-color: var(--console-line);
+}
+.app-shell .form-panel {
+	padding: 28px;
+}
+.app-shell .channel-row > .toggle {
+	justify-self: end;
+}
+.login-shell .login-card {
+	background: white;
+	border: 1px solid var(--console-line);
+	border-radius: 18px;
+	box-shadow: 0 12px 40px #20383108;
+}
+.login-shell .primary-button {
+	background: var(--console-accent);
+	border-radius: 8px;
+	box-shadow: none;
+}
+.login-shell input {
+	border-radius: 8px;
+	background: #f7faf8;
+	border-color: #cfdcd5;
+}
+.login-shell input:focus {
+	border-color: var(--console-accent);
+	box-shadow: 0 0 0 3px #23766514;
+}
+.login-shell .login-copy h1 {
+	color: var(--console-ink);
+}
+@media (max-width: 1100px) {
+	.app-shell .channel-row {
+		grid-template-columns: 46px minmax(0, 1fr) auto;
+		grid-template-areas: "icon identity toggle" "state state scan" "actions actions actions";
+	}
+	.app-shell .channel-row > .scan-button {
+		justify-self: end;
+	}
+	.app-shell .channel-state {
+		grid-column: 1 / 3;
+		justify-self: start;
+	}
+	.app-shell .personal-session-panel {
+		grid-template-columns: 1fr;
+	}
+	.app-shell .session-orbit {
+		display: none;
+	}
+}
+@media (max-width: 980px) {
+	.app-shell .sidebar {
+		width: 100%;
+		padding: 0;
+		border: 0;
+		background: #eef3f0;
+	}
+	.app-shell .side-navigation {
+		background: #eef3f0;
+		border-top: 1px solid var(--console-line);
+	}
+	.app-shell .side-navigation button {
+		font-size: 10px;
+		min-width: 0;
+		flex: 1;
+	}
+	.app-shell .workspace {
+		margin-left: 0;
+	}
+}
+@media (max-width: 620px) {
+	.app-shell .workspace .content {
+		width: calc(100% - 32px);
+		padding-top: 24px;
+	}
+	.app-shell .workspace-header {
+		padding-inline: 16px;
+	}
+	.app-shell .page-intro h1 {
+		font-size: 27px;
+	}
+	.app-shell .channel-panel-head {
+		padding: 18px;
+		gap: 16px;
+	}
+	.app-shell .channel-toolbar {
+		width: 100%;
+		justify-content: space-between;
+	}
+	.app-shell .channel-row {
+		margin: 14px;
+		padding: 14px;
+		gap: 12px;
+	}
+	.app-shell .channel-actions {
+		gap: 8px;
+		justify-content: flex-start;
+	}
+	.app-shell .channel-actions > :first-child {
+		margin-right: 0;
+	}
+	.app-shell .row-action {
+		flex: 1 1 auto;
+		padding-inline: 10px;
+		font-size: 12px;
+	}
+	.app-shell .workspace-kicker {
+		display: none;
+	}
+	.app-shell .side-navigation button {
+		padding-inline: 4px;
+		font-size: 10px;
+	}
+	.app-shell .personal-session-panel {
+		padding: 20px;
+	}
+	.app-shell .ledger-filters > label {
+		width: 100%;
+	}
+	.app-shell .ledger-card {
+		padding: 18px;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none;
+		transition: none;
+	}
+}

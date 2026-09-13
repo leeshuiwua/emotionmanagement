@@ -1,3 +1,5 @@
+import { promptConfig, renderPromptTemplate } from "./prompt-config.js";
+
 export type SafetyLevel = "NONE" | "CARE" | "HIGH" | "IMMINENT";
 
 const imminent = [
@@ -21,7 +23,10 @@ export function classifySafety(text: string): SafetyLevel {
 export function crisisResponse(level: "HIGH" | "IMMINENT"): string {
 	const urgency =
 		level === "IMMINENT"
-			? "你的安全现在是最重要的。"
-			: "听起来你正承受很强的痛苦，谢谢你告诉我。";
-	return `${urgency}\n\n请先离开可能伤害自己或他人的物品，到有人的地方，并立即联系一位你信任的人陪在身边。如果危险迫在眉睫，请立即拨打当地紧急电话（中国大陆：110/120）或前往最近急诊。\n\n你现在是否已经有具体计划、工具，或正独自一人？`;
+			? promptConfig.replies.crisisImminent
+			: promptConfig.replies.crisisHigh;
+	return renderPromptTemplate(promptConfig.replies.crisisFormat, {
+		urgency,
+		body: promptConfig.replies.crisisBody,
+	});
 }

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import Database from "better-sqlite3";
+import { ledgerSchema } from "./ledger.js";
 
 export type SqliteDb = Database.Database;
 
@@ -113,6 +114,11 @@ CREATE INDEX IF NOT EXISTS idx_inbound_channel_contact_time
   ON inbound_messages(app_id, open_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_conversations_created
   ON conversations(created_at DESC);
+CREATE TABLE IF NOT EXISTS mood_analyses (
+  cache_key TEXT PRIMARY KEY,
+  result_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS audit_events (
   id TEXT PRIMARY KEY,
   actor_type TEXT NOT NULL,
@@ -141,6 +147,7 @@ export function openDatabase(path: string): SqliteDb {
 	db.pragma("foreign_keys = ON");
 	db.pragma("busy_timeout = 5000");
 	db.exec(MIGRATIONS);
+	db.exec(ledgerSchema);
 	db.prepare(
 		"INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES(2, ?)",
 	).run(new Date().toISOString());

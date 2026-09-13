@@ -1,0 +1,130 @@
+.ledger-page {
+	display: grid;
+	gap: 24px;
+}
+.ledger-page h1 {
+	margin: 8px 0;
+}
+.ledger-page p {
+	color: #64748b;
+	line-height: 1.8;
+}
+.ledger-filters,
+.ledger-totals,
+.ledger-pagination {
+	display: flex;
+	gap: 20px;
+	flex-wrap: wrap;
+}
+.ledger-page label {
+	display: grid;
+	gap: 8px;
+	font-size: 14px;
+}
+.ledger-page input,
+.ledger-page select {
+	padding: 10px 12px;
+	border: 1px solid #cbd5e1;
+	border-radius: 8px;
+	background: white;
+	color: #1e293b;
+	min-width: 0;
+}
+.ledger-totals article {
+	flex: 1;
+	min-width: 180px;
+	background: #f0f4f8;
+	padding: 24px;
+	border-radius: 14px;
+}
+.ledger-totals strong {
+	display: block;
+	font-size: 28px;
+	margin-top: 12px;
+}
+.ledger-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 24px;
+}
+.ledger-card {
+	padding: 24px;
+	border: 1px solid #dce3ec;
+	border-radius: 14px;
+	background: white;
+}
+form.ledger-card {
+	display: grid;
+	gap: 14px;
+}
+.ledger-page h2 {
+	font-size: 20px;
+	margin: 0 0 16px;
+}
+.ledger-page small {
+	font-size: 12px;
+	color: #64748b;
+}
+.ledger-page button {
+	padding: 10px 16px;
+	border: 1px solid #cbd5e1;
+	border-radius: 8px;
+	cursor: pointer;
+	background: #f8fafc;
+}
+.ledger-page button[type="submit"] {
+	background: #5c4ee5;
+	color: white;
+}
+.ledger-page button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+.ledger-category {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 12px 0;
+}
+.ledger-page hr {
+	border: 0;
+	border-top: 1px solid #e2e8f0;
+	margin: 24px 0;
+}
+.ledger-table {
+	overflow-x: auto;
+}
+.ledger-table table {
+	width: 100%;
+	border-collapse: collapse;
+	text-align: left;
+}
+.ledger-table th,
+.ledger-table td {
+	padding: 14px 10px;
+	border-bottom: 1px solid #e2e8f0;
+}
+.ledger-table small {
+	display: block;
+	max-width: 250px;
+	overflow-wrap: anywhere;
+}
+.ledger-table .income {
+	color: #08795f;
+}
+.ledger-table .expense {
+	color: #b44835;
+}
+.ledger-pagination {
+	justify-content: flex-end;
+	align-items: center;
+	margin-top: 20px;
+}
+.ledger-page [role="alert"] {
+	color: #b42318;
+}
+@media (max-width: 850px) {
+	.ledger-grid {
+		grid-template-columns: 1fr;
+	}
+}

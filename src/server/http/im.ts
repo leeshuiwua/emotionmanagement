@@ -1,6 +1,9 @@
 import { type Request, type Response, Router } from "express";
+import rateLimit from "express-rate-limit";
 import QRCode from "qrcode";
+import { z } from "zod";
 import type { AppConfig } from "../config.js";
+import { analyseMood } from "../core/mood.js";
 import { audit, type SqliteDb } from "../db.js";
 import { syncChannels } from "../im/index.js";
 import {
@@ -20,6 +23,7 @@ import {
 	stopWechatLogin,
 	submitWechatVerifyCode,
 } from "../im/wechat.js";
+import { dateSchema } from "../ledger.js";
 import { requireAdmin } from "./auth.js";
 
 const loginLimiter = (await import("express-rate-limit")).default({
@@ -35,6 +39,30 @@ const loginLimiter = (await import("express-rate-limit")).default({
 
 export function createImRouter(db: SqliteDb, config: AppConfig): Router {
 	const router = Router();
+	const analysisLimiter = rateLimit({
+		windowMs: 60000,
+		max: 20,
+		standardHeaders: true,
+		legacyHeaders: false,
+	});
+	const rangeDate = z.union([dateSchema, z.iso.datetime({ offset: true })]);
+	router.use((req, res, next) => {
+		if (!["/profiles", "/conversations", "/mood-analysis"].includes(req.path))
+			return next();
+		const parsed = z
+			.object({ from: rangeDate.optional(), to: rangeDate.optional() })
+			.safeParse(req.query);
+		if (!parsed.success)
+			return void res
+				.status(400)
+				.json({ error: { message: "日期格式不正确" } });
+		const filters = conversationFilters(req);
+		if (filters.from && filters.to && filters.from > filters.to)
+			return void res
+				.status(400)
+				.json({ error: { message: "开始日期不能晚于结束日期" } });
+		next();
+	});
 
 	function conversationFilters(req: Request) {
 		const from =
@@ -43,10 +71,14 @@ export function createImRouter(db: SqliteDb, config: AppConfig): Router {
 		return {
 			from: from
 				? from.length === 10
-					? `${from}T00:00:00.000Z`
-					: from
+					? new Date(`${from}T00:00:00.000+08:00`).toISOString()
+					: new Date(from).toISOString()
 				: undefined,
-			to: to ? (to.length === 10 ? `${to}T23:59:59.999Z` : to) : undefined,
+			to: to
+				? new Date(
+						to.length === 10 ? `${to}T23:59:59.999+08:00` : to,
+					).toISOString()
+				: undefined,
 			channelId:
 				typeof req.query.channelId === "string"
 					? req.query.channelId
@@ -78,6 +110,40 @@ export function createImRouter(db: SqliteDb, config: AppConfig): Router {
 	router.get("/profiles", requireAdmin(db), (req, res) => {
 		res.json({ profiles: listContactProfiles(db, conversationFilters(req)) });
 	});
+
+	router.post(
+		"/mood-analysis",
+		requireAdmin(db, true),
+		analysisLimiter,
+		async (req, res) => {
+			const filters = conversationFilters(req);
+			if (!filters.channelId || !filters.contactId)
+				return void res
+					.status(400)
+					.json({ error: { message: "请先选择一位记录人" } });
+			try {
+				const result = await analyseMood(db, config, filters);
+				audit(db, {
+					actorType: "ADMIN",
+					actorId: req.adminSession?.adminId,
+					action: "MOOD_ANALYSIS_VIEWED",
+					resourceType: "IM_CHANNEL",
+					resourceId: filters.channelId,
+				});
+				res.json(result);
+			} catch (error) {
+				const empty =
+					error instanceof Error && error.message === "NO_MOOD_RECORDS";
+				res.status(empty ? 404 : 503).json({
+					error: {
+						message: empty
+							? "此人所选时间范围内没有心情记录"
+							: "心境分析暂时不可用，原始记录仍已保存，请稍后重试",
+					},
+				});
+			}
+		},
+	);
 
 	/* ------------------------- IM 渠道 CRUD ------------------------- */
 

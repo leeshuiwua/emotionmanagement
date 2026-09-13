@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import "./i18n";
 import { App } from "./App";
 import "./styles.css";
+import "./admin-ui.css";
 
 const client = new QueryClient({
 	defaultOptions: { queries: { retry: 1, staleTime: 10_000 } },

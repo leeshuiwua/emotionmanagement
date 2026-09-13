@@ -1,0 +1,22 @@
+.mood-review {
+	overflow-wrap: anywhere;
+}
+.mood-review .profile-section p {
+	white-space: pre-wrap;
+	line-height: 1.85;
+}
+.mood-review .analysis-basis {
+	display: block;
+	line-height: 1.7;
+}
+.mood-review blockquote {
+	margin: 16px 0;
+	padding: 8px 14px;
+	border-left: 2px solid var(--blue);
+	background: var(--ice);
+	font-size: 13px;
+	line-height: 1.8;
+}
+.mood-review summary {
+	cursor: pointer;
+}

@@ -12,6 +12,7 @@ import type { AppConfig } from "./config.js";
 import { openDatabase, type SqliteDb } from "./db.js";
 import { bootstrapAdmin, createAuthRouter } from "./http/auth.js";
 import { createImRouter } from "./http/im.js";
+import { createLedgerRouter } from "./http/ledger.js";
 import { createSettingsRouter } from "./http/settings.js";
 import { createSystemRouter } from "./http/system.js";
 import { stopAll, syncChannels } from "./im/index.js";
@@ -46,6 +47,7 @@ export async function createApp(
 		createSystemRouter(db),
 	);
 	app.use("/admin-api/v1/im", createImRouter(db, config));
+	app.use("/admin-api/v1/ledger", createLedgerRouter(db));
 
 	// 静态资源（生产构建产物）
 	const webRoot = resolve("dist/web");

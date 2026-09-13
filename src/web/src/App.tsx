@@ -9,12 +9,13 @@ import {
 import { useTranslation } from "react-i18next";
 import {
 	api,
-	type ContactProfile,
 	type ImChannel,
 	imApi,
 	setCsrfToken,
 	type WechatLoginState,
 } from "./api";
+import { LedgerPage } from "./LedgerPage";
+import { MoodAnalysisPanel } from "./MoodAnalysisPanel";
 
 type Session = { user: { username: string }; csrfToken: string };
 type Setting = {
@@ -36,6 +37,7 @@ const navigation = [
 	["dashboard", "/admin/", "◫"],
 	["wechat", "/admin/wechat", "◉"],
 	["dialogueInsights", "/admin/conversations", "≈"],
+	["ledger", "/admin/ledger", "¥"],
 	["models", "/admin/models", "✦"],
 	["audit", "/admin/audit", "≡"],
 ] as const;
@@ -219,6 +221,8 @@ function Shell({
 						<ConversationInsightsPage />
 					) : path === "/admin/models" ? (
 						<ModelsPage />
+					) : path === "/admin/ledger" ? (
+						<LedgerPage />
 					) : path === "/admin/audit" ? (
 						<AuditPage />
 					) : (
@@ -418,7 +422,16 @@ function WechatPersonalPage() {
 						<h2>{t("imChannels")}</h2>
 						<p>{t("imChannelHelp")}</p>
 					</div>
-					<span>{channels.length} CHANNEL</span>
+					<div className="channel-toolbar">
+						<span className="channel-count">{channels.length} CHANNEL</span>
+						<button
+							type="button"
+							className="add-channel-button"
+							onClick={() => setAddChannelOpen(true)}
+						>
+							+ {t("addChannel")}
+						</button>
+					</div>
 				</div>
 				{channels.length === 0 ? (
 					<div className="channel-empty">
@@ -503,13 +516,6 @@ function WechatPersonalPage() {
 						);
 					})
 				)}
-				<button
-					type="button"
-					className="add-channel-button"
-					onClick={() => setAddChannelOpen(true)}
-				>
-					+ {t("addChannel")}
-				</button>
 			</section>
 
 			<section className="personal-session-panel">
@@ -818,52 +824,15 @@ function capitalize(s: string): string {
 /* ------------------------- 对话记录与心理画像 ------------------------- */
 
 function localDate(daysAgo = 0) {
-	const date = new Date();
-	date.setDate(date.getDate() - daysAgo);
-	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+	return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Shanghai" }).format(
+		new Date(Date.now() - daysAgo * 86400000),
+	);
 }
 
 function localRangeIso(date: string, endOfDay = false) {
 	return new Date(
-		`${date}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}`,
+		`${date}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}+08:00`,
 	).toISOString();
-}
-
-function EmotionSparkline({ profile }: { profile: ContactProfile }) {
-	const points = profile.emotion.trend.slice(-14);
-	if (!points.length)
-		return <div className="sparkline-empty">暂无足够数据</div>;
-	const width = 320;
-	const height = 94;
-	const plotted = points.map((point, index) => ({
-		x: points.length === 1 ? width / 2 : (index / (points.length - 1)) * width,
-		y: height / 2 - (point.score / 100) * (height / 2 - 8),
-		...point,
-	}));
-	const path = plotted
-		.map((point, index) => `${index ? "L" : "M"}${point.x},${point.y}`)
-		.join(" ");
-	return (
-		<div className="emotion-chart">
-			<svg viewBox={`0 0 ${width} ${height}`} role="img">
-				<title>近期情绪趋势，中线为中性</title>
-				<line x1="0" y1={height / 2} x2={width} y2={height / 2} />
-				<path d={path} />
-				{plotted.map((point) => (
-					<circle key={point.date} cx={point.x} cy={point.y} r="3">
-						<title>
-							{point.date} · {point.score}
-						</title>
-					</circle>
-				))}
-			</svg>
-			<div>
-				<span>{points[0]?.date.slice(5)}</span>
-				<span>中性线</span>
-				<span>{points[points.length - 1]?.date.slice(5)}</span>
-			</div>
-		</div>
-	);
 }
 
 function ConversationInsightsPage() {
@@ -977,7 +946,9 @@ function ConversationInsightsPage() {
 					<span>{t("analysedContacts")}</span>
 				</div>
 			</section>
-			{profilesQuery.isLoading ? (
+			{profilesQuery.isError ? (
+				<p role="alert">{profilesQuery.error.message}</p>
+			) : profilesQuery.isLoading ? (
 				<div className="insight-empty">{t("loading")}</div>
 			) : !profiles.length ? (
 				<div className="insight-empty">
@@ -1017,30 +988,34 @@ function ConversationInsightsPage() {
 						</div>
 						<div className="record-heading">
 							<div>
-								<span className="eyebrow">DIALOGUE ARCHIVE</span>
+								<span className="eyebrow">MOOD JOURNAL</span>
 								<h2>{t("conversationRecords")}</h2>
 							</div>
 							<span>
 								{recordsQuery.data?.total ?? 0} {t("recordsUnit")}
 							</span>
 						</div>
+						{recordsQuery.isError && (
+							<p role="alert">{recordsQuery.error.message}</p>
+						)}
 						<div className="conversation-list">
 							{records.map((record) => (
 								<article key={record.id}>
 									<header>
-										<time>{new Date(record.createdAt).toLocaleString()}</time>
+										<time>
+											{new Date(record.createdAt).toLocaleString("zh-CN", {
+												timeZone: "Asia/Shanghai",
+											})}
+											（北京时间）
+										</time>
 										{record.messageType === "voice" && (
 											<span className="safety-chip">
 												{t("voiceTranscript")}
 											</span>
 										)}
-										<span
-											className={`emotion-chip ${record.emotionScore < 0 ? "negative" : record.emotionScore > 0 ? "positive" : ""}`}
-										>
-											{record.emotionScore > 0 ? "+" : ""}
-											{record.emotionScore}
-										</span>
-										{record.safetyLevel !== "LOW" && (
+										{["CARE", "HIGH", "IMMINENT"].includes(
+											record.safetyLevel,
+										) && (
 											<span className="safety-chip">{record.safetyLevel}</span>
 										)}
 									</header>
@@ -1083,80 +1058,12 @@ function ConversationInsightsPage() {
 						)}
 					</section>
 					{selected && (
-						<aside className="profile-panel">
-							<div className="profile-account">
-								<span className="profile-avatar">
-									{selected.contactLabel.slice(0, 1).toUpperCase()}
-								</span>
-								<div>
-									<span className="eyebrow">PSYCHOLOGICAL PORTRAIT</span>
-									<h2>{selected.contactLabel}</h2>
-									<p>
-										{selected.channelName} ·{" "}
-										{selected.wechatAccountId || t("unknownAccount")}
-									</p>
-								</div>
-							</div>
-							<div className="mbti-block">
-								<div>
-									<span>{t("mbtiTendency")}</span>
-									<strong>{selected.mbti}</strong>
-								</div>
-								<em>
-									{selected.confidence === "medium"
-										? t("mediumConfidence")
-										: t("lowConfidence")}
-								</em>
-							</div>
-							<div className="dimension-list">
-								{selected.dimensions.map((dimension) => (
-									<div key={dimension.pair}>
-										<span>{dimension.pair[0]}</span>
-										<i>
-											<b style={{ width: `${dimension.value}%` }} />
-										</i>
-										<span>{dimension.pair[1]}</span>
-									</div>
-								))}
-							</div>
-							<div className="profile-section">
-								<div className="profile-section-title">
-									<h3>{t("emotionFluctuation")}</h3>
-									<span className={`volatility-${selected.emotion.level}`}>
-										{t(`volatility_${selected.emotion.level}` as never)} ·{" "}
-										{selected.emotion.volatility}
-									</span>
-								</div>
-								<EmotionSparkline profile={selected} />
-								<div className="emotion-tags">
-									{selected.topEmotions.length ? (
-										selected.topEmotions.map((emotion) => (
-											<span key={emotion}>{emotion}</span>
-										))
-									) : (
-										<span>{t("neutralExpression")}</span>
-									)}
-								</div>
-							</div>
-							<div className="profile-section">
-								<h3>{t("personalityClues")}</h3>
-								<ul>
-									{selected.traits.map((trait) => (
-										<li key={trait}>{trait}</li>
-									))}
-								</ul>
-							</div>
-							<div className="analysis-basis">
-								<strong>{selected.messageCount}</strong>
-								<span>
-									{t("sampleMessages")}
-									<br />
-									{new Date(selected.firstSeenAt).toLocaleDateString()} —{" "}
-									{new Date(selected.lastSeenAt).toLocaleDateString()}
-								</span>
-							</div>
-							<p className="analysis-disclaimer">{t("analysisDisclaimer")}</p>
-						</aside>
+						<MoodAnalysisPanel
+							key={`${selected.channelId}:${selected.contactId}:${from}:${to}`}
+							profile={selected}
+							from={from}
+							to={to}
+						/>
 					)}
 				</div>
 			)}

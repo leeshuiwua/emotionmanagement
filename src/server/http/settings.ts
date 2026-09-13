@@ -88,7 +88,7 @@ function latest(
 	return db
 		.prepare(
 			`SELECT * FROM setting_versions WHERE kind = ? AND COALESCE(role, '') = COALESCE(?, '')
-    ORDER BY CASE status WHEN 'ACTIVE' THEN 0 ELSE 1 END, created_at DESC LIMIT 1`,
+    ORDER BY created_at DESC, rowid DESC LIMIT 1`,
 		)
 		.get(kind, role) as SettingRow | undefined;
 }
@@ -144,7 +144,9 @@ function registerKind(
 			resourceId: id,
 			detail: { role },
 		});
-		const created = latest(db, kind, role);
+		const created = db
+			.prepare("SELECT * FROM setting_versions WHERE id = ?")
+			.get(id) as SettingRow | undefined;
 		if (!created) throw new Error("Draft was not persisted");
 		res.status(201).json(view(created, config.masterKey));
 	});

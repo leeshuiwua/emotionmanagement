@@ -91,7 +91,6 @@ export type ConversationRecord = {
 	assistantText: string | null;
 	safetyLevel: string;
 	createdAt: string;
-	emotionScore: number;
 };
 
 export type ContactProfile = {
@@ -104,17 +103,25 @@ export type ContactProfile = {
 	firstSeenAt: string;
 	lastSeenAt: string;
 	highRiskCount: number;
-	mbti: string;
-	confidence: "low" | "medium";
-	dimensions: Array<{ pair: string; value: number }>;
-	traits: string[];
-	topEmotions: string[];
-	emotion: {
-		average: number;
-		volatility: number;
-		level: "stable" | "medium" | "high";
-		trend: Array<{ date: string; score: number; messageCount: number }>;
+};
+
+export type MoodAnalysis = {
+	analysis: {
+		current: string;
+		changes: string;
+		traits: string;
+		advice: string;
+		limitations: string;
+		evidenceIds: string[];
 	};
+	model: string;
+	generatedAt: string;
+	sampleCount: number;
+	totalCount: number;
+	firstAt: string;
+	lastAt: string;
+	truncated: boolean;
+	evidence: Array<{ id: string; at: string; text: string }>;
 };
 
 export const imApi = {
@@ -169,6 +176,10 @@ export const imApi = {
 			page: number;
 			pageSize: number;
 		}>(`/im/conversations?${params.toString()}`),
+	analyseMood: (params: URLSearchParams) =>
+		api<MoodAnalysis>(`/im/mood-analysis?${params.toString()}`, {
+			method: "POST",
+		}),
 	listProfiles: (params: URLSearchParams) =>
 		api<{ profiles: ContactProfile[] }>(`/im/profiles?${params.toString()}`),
 };

@@ -1,9 +1,11 @@
 import { randomBytes } from "node:crypto";
 import request from "supertest";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/server/app.js";
 import type { AppConfig } from "../src/server/config.js";
+import * as intentModule from "../src/server/core/intent.js";
 import type { SqliteDb } from "../src/server/db.js";
+import { activeSetting } from "../src/server/http/settings.js";
 import { activePollerCount, stopAll } from "../src/server/im/index.js";
 import { handleInbound } from "../src/server/im/router.js";
 import { getChannel } from "../src/server/im/store.js";
@@ -47,6 +49,7 @@ async function boot(): Promise<AppHandle> {
 }
 
 afterEach(async () => {
+	vi.restoreAllMocks();
 	while (handles.length) {
 		const h = handles.pop();
 		if (h) await h.app.close();
@@ -141,6 +144,68 @@ describe("health and auth", () => {
 });
 
 describe("model settings lifecycle", () => {
+	it.each(["regular", "safety"])(
+		"keeps replacement drafts visible and activates them for %s",
+		async (role) => {
+			const { app, db, cookie, csrf } = await boot();
+			const path = `/admin-api/v1/settings/models/${role}`;
+			const post = (suffix = "", body = {}) =>
+				request(app.app)
+					.post(path + suffix)
+					.set("Cookie", cookie)
+					.set("x-csrf-token", csrf)
+					.send(body);
+			const read = () => request(app.app).get(path).set("Cookie", cookie);
+			const first = await post("", {
+				config: { baseUrl: "https://example.com/v1", model: "old" },
+				secret: "old-key",
+			});
+			expect((await post("/test")).status).toBe(200);
+			expect((await post("/activate")).status).toBe(200);
+			const replacement = await post("", {
+				config: { baseUrl: "https://example.com/v1", model: "new" },
+				secret: "replacement-key",
+			});
+			expect(replacement.status).toBe(201);
+			expect(replacement.body.status).toBe("DRAFT");
+			expect(replacement.body.id).not.toBe(first.body.id);
+			expect((await read()).body.id).toBe(replacement.body.id);
+			expect(activeSetting(db, config, "model", role)?.config.model).toBe(
+				"old",
+			);
+			// Equal timestamps still select the last inserted draft; blank keys inherit it.
+			db.prepare("UPDATE setting_versions SET created_at = ?").run(
+				"2026-01-01T00:00:00.000Z",
+			);
+			vi.spyOn(Date.prototype, "toISOString").mockReturnValue(
+				"2026-01-01T00:00:00.000Z",
+			);
+			const revised = await post("", {
+				config: { baseUrl: "https://example.com/v1", model: "new-final" },
+			});
+			expect(revised.body.id).not.toBe(replacement.body.id);
+			expect((await read()).body.id).toBe(revised.body.id);
+			expect((await post("/activate")).status).toBe(409);
+			expect((await post("/test")).status).toBe(200);
+			expect((await read()).body.status).toBe("TESTED");
+			expect((await post("/activate")).body.id).toBe(revised.body.id);
+			expect((await read()).body.status).toBe("ACTIVE");
+			expect(activeSetting(db, config, "model", role)).toMatchObject({
+				config: { model: "new-final" },
+				secret: "replacement-key",
+			});
+			expect(
+				db
+					.prepare(
+						"SELECT count(*) AS count FROM setting_versions WHERE role = ? AND status = 'ACTIVE'",
+					)
+					.get(role),
+			).toEqual({ count: 1 });
+			expect(JSON.stringify((await read()).body)).not.toContain(
+				"replacement-key",
+			);
+		},
+	);
 	it("enforces DRAFT → TESTED → ACTIVE and never returns the raw key", async () => {
 		const { app, cookie, csrf } = await boot();
 		const headers = { "x-csrf-token": csrf };
@@ -283,7 +348,70 @@ describe("IM channel CRUD", () => {
 });
 
 describe("conversation archive and psychological profiles", () => {
+	it("protects model analysis and validates Beijing date ranges", async () => {
+		const { app, cookie, csrf } = await boot();
+		const endpoint = "/admin-api/v1/im/mood-analysis?channelId=c&contactId=a";
+		expect((await request(app.app).post(endpoint)).status).toBe(401);
+		expect(
+			(await request(app.app).post(endpoint).set("Cookie", cookie)).status,
+		).toBe(403);
+		expect(
+			(
+				await request(app.app)
+					.post(endpoint)
+					.set("Cookie", cookie)
+					.set("x-csrf-token", csrf)
+			).status,
+		).toBe(404);
+		expect(
+			(
+				await request(app.app)
+					.post("/admin-api/v1/im/mood-analysis")
+					.set("Cookie", cookie)
+					.set("x-csrf-token", csrf)
+			).status,
+		).toBe(400);
+		for (const range of ["from=2026-02-30", "from=2026-09-02&to=2026-09-01"])
+			expect(
+				(
+					await request(app.app)
+						.get(`/admin-api/v1/im/conversations?${range}`)
+						.set("Cookie", cookie)
+				).status,
+			).toBe(400);
+	});
+	it("uses Beijing midnight boundaries instead of UTC midnight", async () => {
+		vi.spyOn(intentModule, "recognizeIntent").mockResolvedValue({
+			intent: "insight",
+		});
+		const { app, db, cookie, csrf } = await boot();
+		const created = await request(app.app)
+			.post("/admin-api/v1/im/channels")
+			.set("Cookie", cookie)
+			.set("x-csrf-token", csrf)
+			.send({ type: "wechat" });
+		const channel = getChannel(db, created.body.channel.id);
+		if (!channel) throw new Error("channel");
+		await handleInbound(db, config, channel, "a", "今天开心", {
+			messageId: "date",
+		});
+		db.prepare(
+			"UPDATE conversations SET created_at='2026-09-01T16:00:00.000Z'",
+		).run();
+		const first = await request(app.app)
+			.get("/admin-api/v1/im/conversations?from=2026-09-01&to=2026-09-01")
+			.set("Cookie", cookie);
+		const second = await request(app.app)
+			.get("/admin-api/v1/im/conversations?from=2026-09-02&to=2026-09-02")
+			.set("Cookie", cookie);
+		expect(first.body.total).toBe(0);
+		expect(second.body.total).toBe(1);
+	});
 	it("filters stored chats and returns an evidence-labelled contact profile", async () => {
+		// 本用例验证已识别的心境消息归档；不可用分类不应生成心理记录。
+		vi.spyOn(intentModule, "recognizeIntent").mockResolvedValue({
+			intent: "insight",
+		});
 		const { app, db, cookie, csrf } = await boot();
 		const created = await request(app.app)
 			.post("/admin-api/v1/im/channels")
@@ -320,7 +448,7 @@ describe("conversation archive and psychological profiles", () => {
 		expect(records.body.items).toHaveLength(1);
 		expect(records.body.items[0].contactLabel).toBe("wx-co…ct-a");
 		expect(records.body.items[0].messageType).toBe("voice");
-		expect(records.body.items[0]).toHaveProperty("emotionScore");
+		expect(records.body.items[0]).not.toHaveProperty("emotionScore");
 
 		const profiles = await request(app.app)
 			.get(`/admin-api/v1/im/profiles?channelId=${channel.id}`)
@@ -328,15 +456,75 @@ describe("conversation archive and psychological profiles", () => {
 		expect(profiles.status).toBe(200);
 		expect(profiles.body.profiles).toHaveLength(1);
 		expect(profiles.body.profiles[0].messageCount).toBe(2);
-		expect(profiles.body.profiles[0].mbti).toMatch(/^[EISNTFJPX]{4}$/);
-		expect(profiles.body.profiles[0].confidence).toBe("low");
-		expect(profiles.body.profiles[0].emotion.trend).toHaveLength(1);
+		expect(profiles.body.profiles[0]).not.toHaveProperty("mbti");
 	});
 
 	it("keeps conversation records behind admin authentication", async () => {
 		const { app } = await boot();
 		const res = await request(app.app).get("/admin-api/v1/im/conversations");
 		expect(res.status).toBe(401);
+	});
+});
+
+describe("ledger API", () => {
+	it("protects writes, validates inputs and updates totals after soft deletion", async () => {
+		const { app, cookie, csrf } = await boot();
+		expect(
+			(await request(app.app).get("/admin-api/v1/ledger/books")).status,
+		).toBe(401);
+		const books = await request(app.app)
+			.get("/admin-api/v1/ledger/books")
+			.set("Cookie", cookie);
+		const url = `/admin-api/v1/ledger/books/${books.body.books[0].id}/entries`;
+		const entry = {
+			kind: "expense",
+			amount: "35.29",
+			category: "餐饮",
+			account: "现金",
+			date: "2026-09-05",
+			note: "午饭",
+		};
+		expect(
+			(await request(app.app).post(url).set("Cookie", cookie).send(entry))
+				.status,
+		).toBe(403);
+		expect(
+			(
+				await request(app.app)
+					.post(url)
+					.set("Cookie", cookie)
+					.set("x-csrf-token", csrf)
+					.send({ ...entry, amount: "-1" })
+			).status,
+		).toBe(400);
+		const created = await request(app.app)
+			.post(url)
+			.set("Cookie", cookie)
+			.set("x-csrf-token", csrf)
+			.send(entry);
+		expect(created.status).toBe(201);
+		const listed = await request(app.app)
+			.get(`${url}?month=2026-09`)
+			.set("Cookie", cookie);
+		expect(listed.body.summary.expense).toBe(3529);
+		expect(listed.body.total).toBe(1);
+		expect(
+			(await request(app.app).get(`${url}?month=2026-13`).set("Cookie", cookie))
+				.status,
+		).toBe(400);
+		expect(
+			(
+				await request(app.app)
+					.delete(`${url}/${created.body.id}`)
+					.set("Cookie", cookie)
+					.set("x-csrf-token", csrf)
+			).status,
+		).toBe(204);
+		const after = await request(app.app)
+			.get(`${url}?month=2026-09`)
+			.set("Cookie", cookie);
+		expect(after.body.summary.expense).toBe(0);
+		expect(after.body.total).toBe(0);
 	});
 });
 
