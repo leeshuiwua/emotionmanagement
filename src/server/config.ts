@@ -14,6 +14,7 @@ const EnvSchema = z.object({
 	COOKIE_SECURE: z.enum(["true", "false", "auto", "force"]).default("auto"),
 	BOOTSTRAP_ADMIN_USERNAME: z.string().min(3).default("admin"),
 	BOOTSTRAP_ADMIN_PASSWORD: z.string().min(12).optional(),
+	FLASH_LOG_CONTENT: z.enum(["true", "false"]).default("true"),
 });
 
 export type AppConfig = {
@@ -26,6 +27,7 @@ export type AppConfig = {
 	cookieSecure: boolean | "auto" | "force";
 	bootstrapAdminUsername: string;
 	bootstrapAdminPassword?: string;
+	flashLogContent?: boolean;
 };
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -54,5 +56,6 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
 				: env.COOKIE_SECURE === "true",
 		bootstrapAdminUsername: env.BOOTSTRAP_ADMIN_USERNAME,
 		bootstrapAdminPassword: env.BOOTSTRAP_ADMIN_PASSWORD,
+		flashLogContent: env.FLASH_LOG_CONTENT === "true",
 	};
 }

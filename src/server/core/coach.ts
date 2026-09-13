@@ -1,6 +1,7 @@
 import type { AppConfig } from "../config.js";
 import type { SqliteDb } from "../db.js";
 import { activeSetting } from "../http/settings.js";
+import { loggedModelFetch } from "./model-log.js";
 import { promptConfig } from "./prompt-config.js";
 import { classifySafety, crisisResponse } from "./safety.js";
 
@@ -29,22 +30,29 @@ export async function createCoachReply(
 	const modelName = String(model.config.model ?? "");
 	let failureReason = "network_or_response_error";
 	try {
-		const response = await fetch(`${baseUrl}/chat/completions`, {
-			method: "POST",
-			headers: {
-				"content-type": "application/json",
-				authorization: `Bearer ${model.secret}`,
+		const response = await loggedModelFetch(
+			config,
+			"coach",
+			modelName,
+			model.secret,
+			`${baseUrl}/chat/completions`,
+			{
+				method: "POST",
+				headers: {
+					"content-type": "application/json",
+					authorization: `Bearer ${model.secret}`,
+				},
+				body: JSON.stringify({
+					model: modelName,
+					temperature: 0.5,
+					messages: [
+						{ role: "system", content: promptConfig.systemPrompt },
+						{ role: "user", content: text },
+					],
+				}),
+				signal: AbortSignal.timeout(promptConfig.coach.requestTimeoutMs),
 			},
-			body: JSON.stringify({
-				model: modelName,
-				temperature: 0.5,
-				messages: [
-					{ role: "system", content: promptConfig.systemPrompt },
-					{ role: "user", content: text },
-				],
-			}),
-			signal: AbortSignal.timeout(promptConfig.coach.requestTimeoutMs),
-		});
+		);
 		if (!response.ok) {
 			failureReason = `http_${response.status}`;
 			throw new Error("model HTTP error");

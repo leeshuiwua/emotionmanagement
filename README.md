@@ -71,6 +71,12 @@ npm start
 
 ## 验证
 
+### Flash 调用日志
+
+`deepseek-v4-flash` 的意图识别、心境分析、心理回复调用会输出 `[flash]` JSON 日志到服务端控制台。`requestId` 关联请求与响应，`workload` 区分业务；响应包含 HTTP 状态、`durationMs` 和 API 原始 `usage`（输入、输出、总 Token，以及接口返回的缓存命中/未命中、推理 Token 明细）。未返回用量时为 `null`，不估算为零。
+
+默认 `FLASH_LOG_CONTENT=true`，打印请求参数、提示词、来信和模型响应，密钥脱敏且不打印请求头/地址。日志含私人内容，应限制日志访问及保存周期。排查后在 `.env` 设置 `FLASH_LOG_CONTENT=false` 并重启，保留耗时和用量日志、关闭正文。心境缓存命中不会请求模型，也不会新增 Token 消耗日志；日志不累计费用。
+
 ```bash
 npm run lint
 npm run typecheck

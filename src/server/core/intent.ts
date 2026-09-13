@@ -3,6 +3,7 @@ import type { AppConfig } from "../config.js";
 import type { SqliteDb } from "../db.js";
 import { activeSetting } from "../http/settings.js";
 import { chinaDate, entrySchema } from "../ledger.js";
+import { loggedModelFetch } from "./model-log.js";
 import { promptConfig, renderPromptTemplate } from "./prompt-config.js";
 
 const intentSchema = z.discriminatedUnion("intent", [
@@ -38,7 +39,11 @@ export async function recognizeIntent(
 	const modelName = String(model.config.model ?? "");
 	try {
 		const today = chinaDate();
-		const response = await fetch(
+		const response = await loggedModelFetch(
+			config,
+			"intent",
+			modelName,
+			model.secret,
 			`${String(model.config.baseUrl ?? "").replace(/\/$/, "")}/chat/completions`,
 			{
 				method: "POST",

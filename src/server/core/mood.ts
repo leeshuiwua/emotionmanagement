@@ -4,6 +4,7 @@ import type { AppConfig } from "../config.js";
 import type { SqliteDb } from "../db.js";
 import { activeSetting } from "../http/settings.js";
 import { type ConversationFilters, moodSample } from "../im/insights.js";
+import { loggedModelFetch } from "./model-log.js";
 import { promptConfig } from "./prompt-config.js";
 
 const section = z.string().trim().min(1).max(1200);
@@ -30,6 +31,7 @@ export async function analyseMood(
 	if (!sample.rows.length) throw new Error("NO_MOOD_RECORDS");
 	const model = activeSetting(db, config, "model", "regular");
 	if (!model?.secret) throw new Error("MODEL_UNAVAILABLE");
+	const secret = model.secret;
 	const modelName = String(model.config.model ?? "");
 	const payload = sample.rows.map((r) => ({
 		id: r.id,
@@ -62,7 +64,11 @@ export async function analyseMood(
 	if (previous) return previous;
 	const job = (async () => {
 		try {
-			const response = await fetch(
+			const response = await loggedModelFetch(
+				config,
+				"mood",
+				modelName,
+				secret,
 				`${String(model.config.baseUrl ?? "").replace(/\/$/, "")}/chat/completions`,
 				{
 					method: "POST",
