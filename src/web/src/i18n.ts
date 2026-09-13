@@ -31,6 +31,10 @@ const resources = {
 			activate: "启用版本",
 			status: "当前状态",
 			notConfigured: "尚未配置",
+			clearMoodRecords: "清除所有记录",
+			clearMoodConfirm:
+				"确定永久清除全部账号、全部日期的心情记录和分析缓存吗？不受当前筛选条件限制，不影响生活账本、微信绑定或模型配置。清除后无法在页面恢复。",
+			clearMoodSuccess: "已清除 {{count}} 条心情记录及分析缓存。",
 			secretHint: "留空即沿用已保存密钥",
 			saveSuccess: "草稿已保存，尚未生效。请完成配置校验后点击启用。",
 			tested: "测试通过",
@@ -173,6 +177,10 @@ const resources = {
 			activate: "Activate version",
 			status: "Current status",
 			notConfigured: "Not configured",
+			clearMoodRecords: "Clear all records",
+			clearMoodConfirm:
+				"Permanently clear mood records and analyses for ALL accounts and dates, regardless of filters? Ledger entries, WeChat channels and model settings are unaffected. This cannot be undone in the app.",
+			clearMoodSuccess: "Cleared {{count}} mood records and analysis cache.",
 			secretHint: "Leave blank to keep the saved secret",
 			saveSuccess:
 				"Draft saved, not active yet. Validate the configuration, then activate it.",

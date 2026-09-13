@@ -18,6 +18,7 @@ const schema = z
 		mood: z
 			.object({
 				saved: nonempty,
+				bothSaved: nonempty,
 				system: nonempty,
 				requestTimeoutMs: z.coerce.number().int().min(1000).max(60000),
 				maxTokens: z.coerce.number().int().min(256).max(4096),

@@ -131,6 +131,14 @@ export async function analyseMood(
 					sample.rows.some((r) => r.user_text.length > 2000),
 				evidence: payload.filter((r) => analysis.evidenceIds.includes(r.id)),
 			};
+			// A clear operation may have removed the source records while the model was running.
+			if (
+				sample.rows.some(
+					(row) =>
+						!db.prepare("SELECT 1 FROM conversations WHERE id=?").get(row.id),
+				)
+			)
+				throw new Error("NO_MOOD_RECORDS");
 			db.prepare(
 				"INSERT OR REPLACE INTO mood_analyses(cache_key,result_json,created_at) VALUES(?,?,?)",
 			).run(key, JSON.stringify(result), result.generatedAt);

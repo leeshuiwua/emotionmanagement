@@ -111,6 +111,30 @@ export function createImRouter(db: SqliteDb, config: AppConfig): Router {
 		res.json({ profiles: listContactProfiles(db, conversationFilters(req)) });
 	});
 
+	router.delete("/mood-records", requireAdmin(db, true), (req, res) => {
+		if (req.body?.confirmation !== "CLEAR_ALL_MOOD_RECORDS") {
+			res.status(400).json({ error: { message: "请确认清除全部心情记录" } });
+			return;
+		}
+		const deleted = db.transaction(() => {
+			// Retain only delivery metadata to prevent old WeChat messages being replayed.
+			db.prepare(
+				"UPDATE inbound_messages SET content = NULL, raw_xml = '{}' WHERE id IN (SELECT inbound_message_id FROM conversations)",
+			).run();
+			const count = db.prepare("DELETE FROM conversations").run().changes;
+			db.prepare("DELETE FROM mood_analyses").run();
+			audit(db, {
+				actorType: "ADMIN",
+				actorId: req.adminSession?.adminId,
+				action: "MOOD_RECORDS_CLEARED",
+				resourceType: "CONVERSATION",
+				detail: { count, scope: "all" },
+			});
+			return count;
+		})();
+		res.json({ deleted });
+	});
+
 	router.post(
 		"/mood-analysis",
 		requireAdmin(db, true),

@@ -10,10 +10,13 @@ export async function loggedModelFetch(
 	url: string,
 	init: RequestInit,
 ) {
-	if (model !== "deepseek-v4-flash") return fetch(url, init);
+	const level =
+		config.flashLogLevel ??
+		(config.flashLogContent === false ? "summary" : "full");
+	if (model !== "deepseek-v4-flash" || level === "off") return fetch(url, init);
 	const requestId = randomUUID();
 	const started = performance.now();
-	const contentEnabled = config.flashLogContent ?? true;
+	const contentEnabled = level === "full";
 	const redact = (value: string) => {
 		const masked = secret ? value.split(secret).join("[REDACTED]") : value;
 		return masked

@@ -348,6 +348,78 @@ describe("IM channel CRUD", () => {
 });
 
 describe("conversation archive and psychological profiles", () => {
+	it("clears all mood records with confirmation while preserving channels and replay protection", async () => {
+		const { app, db, cookie, csrf } = await boot();
+		const path = "/admin-api/v1/im/mood-records";
+		expect((await request(app.app).delete(path)).status).toBe(401);
+		expect(
+			(await request(app.app).delete(path).set("Cookie", cookie)).status,
+		).toBe(403);
+		const clear = (body: object) =>
+			request(app.app)
+				.delete(path)
+				.set("Cookie", cookie)
+				.set("x-csrf-token", csrf)
+				.send(body);
+		expect((await clear({})).status).toBe(400);
+		const created = await request(app.app)
+			.post("/admin-api/v1/im/channels")
+			.set("Cookie", cookie)
+			.set("x-csrf-token", csrf)
+			.send({ type: "wechat" });
+		const channel = getChannel(db, created.body.channel.id);
+		if (!channel) throw new Error("channel");
+		vi.spyOn(intentModule, "recognizeIntent").mockResolvedValue({
+			intent: "both",
+			entries: [
+				{
+					kind: "expense",
+					amount: "35",
+					date: "2026-01-01",
+					category: "餐饮",
+					account: "现金",
+					note: "午饭",
+				},
+			],
+		});
+		await handleInbound(db, config, channel, "a", "花35心疼", {
+			messageId: "clear1",
+		});
+		await handleInbound(db, config, channel, "b", "花35心疼", {
+			messageId: "clear2",
+		});
+		db.prepare(
+			"INSERT INTO mood_analyses VALUES ('test', '{}', '2026-01-01')",
+		).run();
+		const result = await clear({ confirmation: "CLEAR_ALL_MOOD_RECORDS" });
+		expect(result.status).toBe(200);
+		expect(result.body.deleted).toBe(2);
+		expect(db.prepare("SELECT count(*) AS n FROM conversations").get()).toEqual(
+			{ n: 0 },
+		);
+		expect(db.prepare("SELECT count(*) AS n FROM mood_analyses").get()).toEqual(
+			{ n: 0 },
+		);
+		expect(
+			db.prepare("SELECT count(*) AS n FROM ledger_entries").get(),
+		).toEqual({ n: 2 });
+		expect(
+			db
+				.prepare(
+					"SELECT count(*) AS n FROM inbound_messages WHERE content IS NOT NULL OR raw_xml <> '{}'",
+				)
+				.get(),
+		).toEqual({ n: 0 });
+		expect(getChannel(db, channel.id)).toBeTruthy();
+		expect(
+			await handleInbound(db, config, channel, "a", "花35心疼", {
+				messageId: "clear1",
+			}),
+		).toBe("");
+		expect(
+			(await clear({ confirmation: "CLEAR_ALL_MOOD_RECORDS" })).body.deleted,
+		).toBe(0);
+	});
 	it("protects model analysis and validates Beijing date ranges", async () => {
 		const { app, cookie, csrf } = await boot();
 		const endpoint = "/admin-api/v1/im/mood-analysis?channelId=c&contactId=a";

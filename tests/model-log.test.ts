@@ -1,10 +1,43 @@
 import { afterEach, expect, it, vi } from "vitest";
-import type { AppConfig } from "../src/server/config.js";
+import { type AppConfig, loadConfig } from "../src/server/config.js";
 import { loggedModelFetch } from "../src/server/core/model-log.js";
 
 afterEach(() => {
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
+});
+
+it("supports explicit levels with precedence over the legacy switch", () => {
+	for (const level of ["off", "summary", "full"] as const) {
+		expect(
+			loadConfig({ FLASH_LOG_LEVEL: level, FLASH_LOG_CONTENT: "false" })
+				.flashLogLevel,
+		).toBe(level);
+	}
+	expect(loadConfig({ FLASH_LOG_CONTENT: "false" }).flashLogLevel).toBe(
+		"summary",
+	);
+	expect(loadConfig({}).flashLogLevel).toBe("full");
+	expect(() => loadConfig({ FLASH_LOG_LEVEL: "invalid" })).toThrow();
+});
+
+it("off makes no logs and leaves the response body untouched", async () => {
+	const log = vi.spyOn(console, "info").mockImplementation(() => {});
+	const original = new Response('{"usage":{"total_tokens":5}}');
+	const fetchMock = vi.fn().mockResolvedValue(original);
+	vi.stubGlobal("fetch", fetchMock);
+	const response = await loggedModelFetch(
+		{ flashLogLevel: "off", flashLogContent: true } as AppConfig,
+		"intent",
+		"deepseek-v4-flash",
+		"key",
+		"https://example.com",
+		{ body: "{}" },
+	);
+	expect(response).toBe(original);
+	expect(original.bodyUsed).toBe(false);
+	expect(fetchMock).toHaveBeenCalledTimes(1);
+	expect(log).not.toHaveBeenCalled();
 });
 
 it("logs correlated request/response and exact token usage without leaking the key", async () => {
@@ -64,7 +97,7 @@ it("keeps usage but excludes private request and response when content logging i
 		),
 	);
 	await loggedModelFetch(
-		{ flashLogContent: false } as AppConfig,
+		{ flashLogLevel: "summary", flashLogContent: true } as AppConfig,
 		"mood",
 		"deepseek-v4-flash",
 		"key",

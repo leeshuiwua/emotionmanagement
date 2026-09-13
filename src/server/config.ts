@@ -15,6 +15,7 @@ const EnvSchema = z.object({
 	BOOTSTRAP_ADMIN_USERNAME: z.string().min(3).default("admin"),
 	BOOTSTRAP_ADMIN_PASSWORD: z.string().min(12).optional(),
 	FLASH_LOG_CONTENT: z.enum(["true", "false"]).default("true"),
+	FLASH_LOG_LEVEL: z.enum(["off", "summary", "full"]).optional(),
 });
 
 export type AppConfig = {
@@ -28,6 +29,7 @@ export type AppConfig = {
 	bootstrapAdminUsername: string;
 	bootstrapAdminPassword?: string;
 	flashLogContent?: boolean;
+	flashLogLevel?: "off" | "summary" | "full";
 };
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -57,5 +59,8 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
 		bootstrapAdminUsername: env.BOOTSTRAP_ADMIN_USERNAME,
 		bootstrapAdminPassword: env.BOOTSTRAP_ADMIN_PASSWORD,
 		flashLogContent: env.FLASH_LOG_CONTENT === "true",
+		flashLogLevel:
+			env.FLASH_LOG_LEVEL ??
+			(env.FLASH_LOG_CONTENT === "true" ? "full" : "summary"),
 	};
 }

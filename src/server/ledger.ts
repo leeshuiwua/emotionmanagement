@@ -187,24 +187,16 @@ export function handleLedgerMessage(
 			.min(1)
 			.max(10)
 			.parse(Array.isArray(parsed) ? parsed : [parsed]);
-		return inputs
-			.map((input) => {
-				const id = addEntry(db, book, input, "wechat");
-				audit(db, {
-					actorType: "WECHAT_USER",
-					actorId: book,
-					action: "LEDGER_CREATED",
-					resourceType: "LEDGER_ENTRY",
-					resourceId: id,
-				});
-				return renderPromptTemplate(promptConfig.ledger.preview, {
-					date: input.date,
-					kind: input.kind === "income" ? "收入" : "支出",
-					amount: Number(input.amount).toFixed(2),
-					category: input.category,
-					account: input.account,
-				});
-			})
-			.join("\n");
+		inputs.forEach((input) => {
+			const id = addEntry(db, book, input, "wechat");
+			audit(db, {
+				actorType: "WECHAT_USER",
+				actorId: book,
+				action: "LEDGER_CREATED",
+				resourceType: "LEDGER_ENTRY",
+				resourceId: id,
+			});
+		});
+		return promptConfig.ledger.saved;
 	})();
 }

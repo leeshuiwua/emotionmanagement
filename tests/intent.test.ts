@@ -70,7 +70,7 @@ describe("automatic message routing", () => {
 			);
 		const replies = await Promise.all([send(), send()]);
 		expect(replies.filter(Boolean)).toHaveLength(1);
-		expect(replies.join("")).toContain("已记录你的心情");
+		expect(replies.join("")).toBe("已记账，已记录心情。");
 		expect(
 			db
 				.prepare(
@@ -136,7 +136,7 @@ describe("automatic message routing", () => {
 			"今天一顿晚饭，花了194",
 			{ messageId: "dinner", messageType: "voice" },
 		);
-		expect(reply).toContain("194.00");
+		expect(reply).toBe("已记账。");
 		expect(db.prepare("SELECT status,cents FROM ledger_entries").get()).toEqual(
 			{ status: "posted", cents: 19400 },
 		);
@@ -210,9 +210,7 @@ describe("automatic message routing", () => {
 			"中午用微信吃饭花了三十五块",
 			{ messageId: "voice1", messageType: "voice" },
 		);
-		expect(reply).toContain("已记账");
-		expect(reply).toContain("35.00");
-		expect(reply).toContain("微信");
+		expect(reply).toBe("已记账。");
 		expect(db.prepare("SELECT status,cents FROM ledger_entries").get()).toEqual(
 			{ status: "posted", cents: 3500 },
 		);
@@ -240,10 +238,18 @@ describe("automatic message routing", () => {
 		const db = boot();
 		const channel = createChannel(db, { type: "wechat" });
 		mockResult({ intent: "insight" });
-		await handleInbound(db, config, channel, "alice", "花了两千很后悔", {
-			messageId: "m1",
-			messageType: "voice",
-		});
+		const reply = await handleInbound(
+			db,
+			config,
+			channel,
+			"alice",
+			"花了两千很后悔",
+			{
+				messageId: "m1",
+				messageType: "voice",
+			},
+		);
+		expect(reply).toBe("已记录心情。");
 		expect(createCoachReply).not.toHaveBeenCalled();
 		expect(db.prepare("SELECT COUNT(*) AS n FROM conversations").get()).toEqual(
 			{ n: 1 },

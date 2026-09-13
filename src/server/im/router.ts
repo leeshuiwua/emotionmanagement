@@ -132,6 +132,8 @@ export async function handleInbound(
 			resourceId: id,
 			detail: { safetyLevel: safety, intent: intent.intent },
 		});
-		return [ledgerReply, reply].filter(Boolean).join("\n");
+		return intent.intent === "both" && !urgent
+			? promptConfig.mood.bothSaved
+			: [ledgerReply, reply].filter(Boolean).join("\n");
 	})();
 }

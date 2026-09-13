@@ -837,6 +837,41 @@ function localRangeIso(date: string, endOfDay = false) {
 
 function ConversationInsightsPage() {
 	const { t } = useTranslation();
+	const client = useQueryClient();
+	const [clearing, setClearing] = useState(false);
+	const [clearNotice, setClearNotice] = useState<{
+		text: string;
+		error?: boolean;
+	} | null>(null);
+	const clearAllRecords = async () => {
+		if (!window.confirm(t("clearMoodConfirm"))) return;
+		setClearing(true);
+		setClearNotice(null);
+		try {
+			const result = await api<{ deleted: number }>("/im/mood-records", {
+				method: "DELETE",
+				body: JSON.stringify({ confirmation: "CLEAR_ALL_MOOD_RECORDS" }),
+			});
+			await client.cancelQueries({ queryKey: ["mood-analysis"] });
+			client.removeQueries({ queryKey: ["mood-analysis"] });
+			await client.cancelQueries({ queryKey: ["im", "conversations"] });
+			client.removeQueries({ queryKey: ["im", "conversations"] });
+			setProfileKey("");
+			setPage(1);
+			await client.invalidateQueries({ queryKey: ["im", "profiles"] });
+			await client.invalidateQueries({ queryKey: ["system"] });
+			setClearNotice({
+				text: t("clearMoodSuccess", { count: result.deleted }),
+			});
+		} catch (error) {
+			setClearNotice({
+				text: error instanceof Error ? error.message : t("error"),
+				error: true,
+			});
+		} finally {
+			setClearing(false);
+		}
+	};
 	const [from, setFrom] = useState(localDate(29));
 	const [to, setTo] = useState(localDate());
 	const [channelId, setChannelId] = useState("");
@@ -942,10 +977,23 @@ function ConversationInsightsPage() {
 					</select>
 				</label>
 				<div className="filter-result">
+					<button
+						type="button"
+						className="row-action danger"
+						disabled={clearing}
+						onClick={() => void clearAllRecords()}
+					>
+						{clearing ? t("loading") : t("clearMoodRecords")}
+					</button>
 					<strong>{profiles.length}</strong>
 					<span>{t("analysedContacts")}</span>
 				</div>
 			</section>
+			{clearNotice && (
+				<Notice tone={clearNotice.error ? "error" : "success"}>
+					{clearNotice.text}
+				</Notice>
+			)}
 			{profilesQuery.isError ? (
 				<p role="alert">{profilesQuery.error.message}</p>
 			) : profilesQuery.isLoading ? (
