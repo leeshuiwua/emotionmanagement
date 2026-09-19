@@ -52,6 +52,54 @@ afterEach(() => {
 });
 
 describe("automatic message routing", () => {
+	it("supplies committed same-user daily context to a serialized follow-up without repeating a ledger write", async () => {
+		const db = boot(),
+			channel = createChannel(db, { type: "wechat" });
+		let call = 0;
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (_url, options) => {
+				const messages = JSON.parse(options.body).messages;
+				if (call++ > 0) {
+					const history = messages.find((m: { content: string }) =>
+						m.content.includes("当天上下文（已处理）"),
+					);
+					expect(history.content).toContain("午饭35");
+					expect(history.content).toContain("ledger");
+				}
+				return {
+					ok: true,
+					json: async () => ({
+						choices: [
+							{
+								message: {
+									content: JSON.stringify(
+										call === 1
+											? { intent: "ledger", entries: [entry] }
+											: { intent: "insight" },
+									),
+								},
+							},
+						],
+					}),
+				};
+			}),
+		);
+		await Promise.all([
+			handleInbound(db, config, channel, "alice", "午饭35", {
+				messageId: "first",
+			}),
+			handleInbound(db, config, channel, "alice", "今天挺开心的", {
+				messageId: "second",
+			}),
+		]);
+		expect(
+			db.prepare("SELECT count(*) AS n FROM ledger_entries").get(),
+		).toEqual({ n: 1 });
+		expect(db.prepare("SELECT count(*) AS n FROM memory_events").get()).toEqual(
+			{ n: 2 },
+		);
+	});
 	it("stores mixed needs atomically and deduplicates concurrent deliveries", async () => {
 		const db = boot(),
 			channel = createChannel(db, { type: "wechat" });

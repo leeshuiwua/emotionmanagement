@@ -79,7 +79,7 @@ export async function analyseMood(
 					body: JSON.stringify({
 						model: modelName,
 						temperature: 0,
-						...(/^deepseek-v4-(?:flash|pro)$/.test(modelName)
+						...(/^deepseek-(?:flash|v4-(?:flash|pro))$/.test(modelName)
 							? {
 									thinking: { type: "disabled" },
 									response_format: { type: "json_object" },

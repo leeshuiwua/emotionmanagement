@@ -1,5 +1,6 @@
 # XML 提示词配置
 统一入口：src/server/config/prompts.xml。修改后重新构建并重启，代码与XML成套发布。
+- memory/context、extract、profile：当天上下文使用规则、记忆归纳和长期画像 JSON 格式；recentLimit、batchSize、requestTimeoutMs、maxTokens 控制窗口和预算。详见 [记忆说明](MEMORY.md)。
 - intent/system：ledger / insight / both / unsupported / clarify 的JSON结构和识别规则。{{today}} 为北京时间日期。entries为1到10笔收支；兼容旧单笔entry结果。
 - intent/clarification：真正含糊输入的澄清；unsupported：明确不支持的消息；unavailable：模型服务故障。不得混为一种错误。
 - intent/requestTimeoutMs、maxTokens：分类预算；DeepSeek V4 使用非思考 JSON 模式。

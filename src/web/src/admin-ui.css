@@ -1,12 +1,12 @@
 /* Unified console theme. Loaded after feature styles; no business-state selectors. */
 :root {
-	--console-bg: #f3f6f5;
+	--console-bg: #f5f7fa;
 	--console-surface: #ffffff;
-	--console-ink: #203831;
-	--console-muted: #667b73;
-	--console-line: #dfe7e3;
-	--console-accent: #237665;
-	--console-soft: #e5f1eb;
+	--console-ink: #344a5c;
+	--console-muted: #748698;
+	--console-line: #e1e8ef;
+	--console-accent: #4b849d;
+	--console-soft: #eaf2f7;
 }
 body {
 	background: var(--console-bg);
@@ -34,7 +34,7 @@ a:focus-visible {
 .app-shell .sidebar {
 	width: 224px;
 	padding: 30px 16px 22px;
-	background: #eef3f0;
+	background: #f9fbfd;
 	border-right: 1px solid var(--console-line);
 	color: var(--console-ink);
 	box-shadow: none;
@@ -73,12 +73,12 @@ a:focus-visible {
 	color: var(--console-ink);
 }
 .app-shell .side-navigation button.active {
-	background: var(--console-accent);
-	box-shadow: 0 4px 10px #23766514;
-	color: white;
+	background: var(--console-soft);
+	box-shadow: none;
+	color: var(--console-accent);
 }
 .app-shell .side-navigation button.active > span {
-	color: white;
+	color: var(--console-accent);
 }
 .app-shell .sidebar-foot {
 	border-color: var(--console-line);
@@ -123,9 +123,9 @@ a:focus-visible {
 .app-shell .page-intro h1,
 .app-shell .ledger-page h1 {
 	font:
-		600 clamp(25px, 2.5vw, 32px) "Songti SC",
-		Georgia,
-		serif;
+		600 clamp(23px, 2.2vw, 28px) "PingFang SC",
+		"Microsoft YaHei",
+		sans-serif;
 	color: var(--console-ink);
 	letter-spacing: 0.02em;
 	margin: 8px 0;

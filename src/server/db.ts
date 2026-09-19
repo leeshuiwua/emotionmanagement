@@ -3,6 +3,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import Database from "better-sqlite3";
 import { ledgerSchema } from "./ledger.js";
+import { memorySchema } from "./memory/schema.js";
 
 export type SqliteDb = Database.Database;
 
@@ -148,6 +149,7 @@ export function openDatabase(path: string): SqliteDb {
 	db.pragma("busy_timeout = 5000");
 	db.exec(MIGRATIONS);
 	db.exec(ledgerSchema);
+	db.exec(memorySchema);
 	db.prepare(
 		"INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES(2, ?)",
 	).run(new Date().toISOString());

@@ -4,7 +4,7 @@ import type { AppConfig } from "../config.js";
 /** Log Flash calls without headers/URLs; never change the request or retry it. */
 export async function loggedModelFetch(
 	config: AppConfig,
-	workload: "intent" | "mood" | "coach",
+	workload: "intent" | "mood" | "coach" | "memory" | "profile",
 	model: string,
 	secret: string,
 	url: string,
@@ -13,7 +13,11 @@ export async function loggedModelFetch(
 	const level =
 		config.flashLogLevel ??
 		(config.flashLogContent === false ? "summary" : "full");
-	if (model !== "deepseek-v4-flash" || level === "off") return fetch(url, init);
+	if (
+		!["deepseek-flash", "deepseek-v4-flash"].includes(model) ||
+		level === "off"
+	)
+		return fetch(url, init);
 	const requestId = randomUUID();
 	const started = performance.now();
 	const contentEnabled = level === "full";

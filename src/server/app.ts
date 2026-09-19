@@ -13,9 +13,12 @@ import { openDatabase, type SqliteDb } from "./db.js";
 import { bootstrapAdmin, createAuthRouter } from "./http/auth.js";
 import { createImRouter } from "./http/im.js";
 import { createLedgerRouter } from "./http/ledger.js";
+import { createMemoryRouter } from "./http/memory.js";
 import { createSettingsRouter } from "./http/settings.js";
 import { createSystemRouter } from "./http/system.js";
 import { stopAll, syncChannels } from "./im/index.js";
+import { startMemoryWorker } from "./memory/agent.js";
+import { backfillMemory } from "./memory/store.js";
 
 export async function createApp(
 	config: AppConfig,
@@ -23,6 +26,7 @@ export async function createApp(
 ): Promise<{ app: Application; db: SqliteDb; close: () => void }> {
 	const db = database ?? openDatabase(config.databasePath);
 	await bootstrapAdmin(db, config);
+	backfillMemory(db);
 
 	const app = express();
 	app.disable("x-powered-by");
@@ -48,6 +52,7 @@ export async function createApp(
 	);
 	app.use("/admin-api/v1/im", createImRouter(db, config));
 	app.use("/admin-api/v1/ledger", createLedgerRouter(db));
+	app.use("/admin-api/v1/memory", createMemoryRouter(db));
 
 	// 静态资源（生产构建产物）
 	const webRoot = resolve("dist/web");
@@ -83,7 +88,10 @@ export async function createApp(
 		console.error("[im] syncChannels failed on startup:", e);
 	}
 
+	const stopMemory =
+		config.env === "test" ? () => {} : startMemoryWorker(db, config);
 	const close = () => {
+		stopMemory();
 		stopAll();
 		db.close();
 	};

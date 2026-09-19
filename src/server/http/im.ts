@@ -24,6 +24,7 @@ import {
 	submitWechatVerifyCode,
 } from "../im/wechat.js";
 import { dateSchema } from "../ledger.js";
+import { clearMemory } from "../memory/store.js";
 import { requireAdmin } from "./auth.js";
 
 const loginLimiter = (await import("express-rate-limit")).default({
@@ -117,6 +118,7 @@ export function createImRouter(db: SqliteDb, config: AppConfig): Router {
 			return;
 		}
 		const deleted = db.transaction(() => {
+			clearMemory(db);
 			// Retain only delivery metadata to prevent old WeChat messages being replayed.
 			db.prepare(
 				"UPDATE inbound_messages SET content = NULL, raw_xml = '{}' WHERE id IN (SELECT inbound_message_id FROM conversations)",

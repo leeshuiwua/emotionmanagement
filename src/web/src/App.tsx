@@ -15,6 +15,7 @@ import {
 	type WechatLoginState,
 } from "./api";
 import { LedgerPage } from "./LedgerPage";
+import { MemoryPanel } from "./MemoryPanel";
 import { MoodAnalysisPanel } from "./MoodAnalysisPanel";
 
 type Session = { user: { username: string }; csrfToken: string };
@@ -853,12 +854,15 @@ function ConversationInsightsPage() {
 				body: JSON.stringify({ confirmation: "CLEAR_ALL_MOOD_RECORDS" }),
 			});
 			await client.cancelQueries({ queryKey: ["mood-analysis"] });
+			await client.cancelQueries({ queryKey: ["memory"] });
+			client.removeQueries({ queryKey: ["memory"] });
 			client.removeQueries({ queryKey: ["mood-analysis"] });
 			await client.cancelQueries({ queryKey: ["im", "conversations"] });
 			client.removeQueries({ queryKey: ["im", "conversations"] });
 			setProfileKey("");
 			setPage(1);
 			await client.invalidateQueries({ queryKey: ["im", "profiles"] });
+			await client.invalidateQueries({ queryKey: ["memory", "users"] });
 			await client.invalidateQueries({ queryKey: ["system"] });
 			setClearNotice({
 				text: t("clearMoodSuccess", { count: result.deleted }),
@@ -881,23 +885,52 @@ function ConversationInsightsPage() {
 		queryKey: ["im", "channels"],
 		queryFn: () => imApi.listChannels(),
 	});
-	const profileParams = new URLSearchParams({
-		from: localRangeIso(from),
-		to: localRangeIso(to, true),
-	});
-	if (channelId) profileParams.set("channelId", channelId);
-	const profilesQuery = useQuery({
+	const recentProfilesQuery = useQuery({
 		queryKey: ["im", "profiles", from, to, channelId],
-		queryFn: () => imApi.listProfiles(profileParams),
+		queryFn: () =>
+			imApi.listProfiles(
+				new URLSearchParams({
+					from: localRangeIso(from),
+					to: localRangeIso(to, true),
+					...(channelId ? { channelId } : {}),
+				}),
+			),
 	});
-	const profiles = profilesQuery.data?.profiles ?? [];
+	const profilesQuery = useQuery({
+		queryKey: ["memory", "users"],
+		queryFn: () =>
+			api<{
+				users: Array<{
+					personId: string;
+					channelId: string;
+					contactId: string;
+					channelName: string;
+					messageCount: number;
+					firstSeenAt: string;
+					lastSeenAt: string;
+				}>;
+			}>("/memory/users"),
+	});
+	const profiles = (profilesQuery.data?.users ?? [])
+		.filter((p) => !channelId || p.channelId === channelId)
+		.map((p) => ({
+			...p,
+			contactLabel:
+				p.contactId.length > 12
+					? `${p.contactId.slice(0, 5)}…${p.contactId.slice(-4)}`
+					: p.contactId,
+			wechatAccountId: null,
+			highRiskCount: 0,
+		}));
 	const selected =
-		profiles.find(
-			(profile) => `${profile.channelId}:${profile.contactId}` === profileKey,
-		) ??
+		profiles.find((profile) => profile.personId === profileKey) ??
 		profiles[0] ??
 		null;
 	const activeContactId = selected?.contactId ?? "";
+	const recentProfile = recentProfilesQuery.data?.profiles.find(
+		(p) =>
+			p.channelId === selected?.channelId && p.contactId === activeContactId,
+	);
 	const recordsParams = new URLSearchParams({
 		from: localRangeIso(from),
 		to: localRangeIso(to, true),
@@ -930,6 +963,23 @@ function ConversationInsightsPage() {
 			<PageIntro index="03" title={t("conversationArchive")}>
 				{t("conversationArchiveDescription")}
 			</PageIntro>
+			<label className="memory-user-picker">
+				选择记录人（发送消息的微信用户）
+				<select
+					value={selected?.personId ?? ""}
+					onChange={(e) => {
+						setProfileKey(e.target.value);
+						setPage(1);
+					}}
+				>
+					{!profiles.length && <option value="">暂无记录人</option>}
+					{profiles.map((p) => (
+						<option key={p.personId} value={p.personId}>
+							{p.contactLabel} · {p.channelName}
+						</option>
+					))}
+				</select>
+			</label>
 			<section className="insight-filter" aria-label={t("timeFilter")}>
 				<label>
 					{t("fromDate")}
@@ -994,6 +1044,9 @@ function ConversationInsightsPage() {
 					{clearNotice.text}
 				</Notice>
 			)}
+			{selected && (
+				<MemoryPanel key={selected.personId} personId={selected.personId} />
+			)}
 			{profilesQuery.isError ? (
 				<p role="alert">{profilesQuery.error.message}</p>
 			) : profilesQuery.isLoading ? (
@@ -1011,15 +1064,12 @@ function ConversationInsightsPage() {
 							{profiles.map((profile) => (
 								<button
 									type="button"
-									key={`${profile.channelId}:${profile.contactId}`}
+									key={profile.personId}
 									className={
-										`${profile.channelId}:${profile.contactId}` ===
-										`${selected?.channelId}:${activeContactId}`
-											? "active"
-											: ""
+										profile.personId === selected?.personId ? "active" : ""
 									}
 									onClick={() => {
-										setProfileKey(`${profile.channelId}:${profile.contactId}`);
+										setProfileKey(profile.personId);
 										setPage(1);
 									}}
 								>
@@ -1105,10 +1155,10 @@ function ConversationInsightsPage() {
 							</div>
 						)}
 					</section>
-					{selected && (
+					{recentProfile && (
 						<MoodAnalysisPanel
-							key={`${selected.channelId}:${selected.contactId}:${from}:${to}`}
-							profile={selected}
+							key={`${selected?.personId}:${from}:${to}`}
+							profile={recentProfile}
 							from={from}
 							to={to}
 						/>

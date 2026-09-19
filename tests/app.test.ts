@@ -9,6 +9,7 @@ import { activeSetting } from "../src/server/http/settings.js";
 import { activePollerCount, stopAll } from "../src/server/im/index.js";
 import { handleInbound } from "../src/server/im/router.js";
 import { getChannel } from "../src/server/im/store.js";
+import { personFor, recordEvent } from "../src/server/memory/store.js";
 
 const config: AppConfig = {
 	env: "test",
@@ -55,6 +56,67 @@ afterEach(async () => {
 		if (h) await h.app.close();
 	}
 	stopAll();
+});
+
+describe("memory administration", () => {
+	it("requires authentication, CSRF and explicit deletion confirmation; isolates corrections and deletion", async () => {
+		const { app, db, cookie, csrf } = await boot();
+		const a = personFor(db, "channel", "a"),
+			b = personFor(db, "channel", "b");
+		recordEvent(db, a, "1", "今天开心", "已记录心情", "insight");
+		recordEvent(db, b, "1", "今天平静", "已记录心情", "insight");
+		db.prepare(
+			"INSERT INTO memory_facts(id,person_id,kind,text,evidence_json,created_at) VALUES('fact',?,'pattern','需要纠正','[]',?)",
+		).run(a.id, new Date().toISOString());
+		const endpoint = `/admin-api/v1/memory/${a.id}`;
+		expect((await request(app.app).get(endpoint)).status).toBe(401);
+		expect(
+			(await request(app.app).post(`${endpoint}/refresh`).set("Cookie", cookie))
+				.status,
+		).toBe(403);
+		expect(
+			(
+				await request(app.app)
+					.delete(endpoint)
+					.set("Cookie", cookie)
+					.set("x-csrf-token", csrf)
+					.send({})
+			).status,
+		).toBe(400);
+		const wrong = await request(app.app)
+			.post(`/admin-api/v1/memory/${b.id}/facts/fact/correct`)
+			.set("Cookie", cookie)
+			.set("x-csrf-token", csrf)
+			.send({ correction: "不准确" });
+		expect(wrong.status).toBe(404);
+		const correction = await request(app.app)
+			.post(`${endpoint}/facts/fact/correct`)
+			.set("Cookie", cookie)
+			.set("x-csrf-token", csrf)
+			.send({ correction: "这是一次性的状态" });
+		expect(correction.status).toBe(200);
+		const view = await request(app.app).get(endpoint).set("Cookie", cookie);
+		expect(view.body.facts[0].invalidatedAt).toBeTruthy();
+		expect(view.body.facts[0].correction).toBe("这是一次性的状态");
+		expect(view.body.task.status).toBe("pending");
+		const cleared = await request(app.app)
+			.delete(endpoint)
+			.set("Cookie", cookie)
+			.set("x-csrf-token", csrf)
+			.send({ confirmation: "CLEAR_PERSON_MEMORY" });
+		expect(cleared.status).toBe(200);
+		const users = await request(app.app)
+			.get("/admin-api/v1/memory/users")
+			.set("Cookie", cookie);
+		expect(
+			users.body.users.map((p: { personId: string }) => p.personId),
+		).toEqual([b.id]);
+		expect(
+			db
+				.prepare("SELECT count(*) AS n FROM memory_facts WHERE person_id=?")
+				.get(a.id),
+		).toEqual({ n: 0 });
+	});
 });
 
 describe("health and auth", () => {

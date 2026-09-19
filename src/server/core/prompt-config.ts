@@ -5,6 +5,17 @@ import { z } from "zod";
 const nonempty = z.string().trim().min(1);
 const schema = z
 	.object({
+		memory: z
+			.object({
+				recentLimit: z.coerce.number().int().min(1).max(30),
+				batchSize: z.coerce.number().int().min(1).max(30),
+				requestTimeoutMs: z.coerce.number().int().min(1000).max(120000),
+				maxTokens: z.coerce.number().int().min(512).max(8192),
+				context: nonempty,
+				extract: nonempty,
+				profile: nonempty,
+			})
+			.strict(),
 		intent: z
 			.object({
 				system: nonempty,

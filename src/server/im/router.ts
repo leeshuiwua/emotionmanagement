@@ -6,8 +6,10 @@ import { promptConfig } from "../core/prompt-config.js";
 import { classifySafety, crisisResponse } from "../core/safety.js";
 import { audit, nowIso, type SqliteDb } from "../db.js";
 import { handleLedgerMessage } from "../ledger.js";
+import { personFor, recordEvent, shortMemory } from "../memory/store.js";
 import type { ImChannel } from "./store.js";
-export async function handleInbound(
+
+async function processInbound(
 	db: SqliteDb,
 	config: AppConfig,
 	channel: ImChannel,
@@ -36,6 +38,11 @@ export async function handleInbound(
 					.get(dedupeKey, legacyKey),
 		);
 	if (seen()) return "";
+	const person = personFor(db, channel.id, externalId);
+	const finish = (reply: string, intent: string, at?: string) => {
+		recordEvent(db, person, messageId, trimmed, reply, intent, at);
+		return reply;
+	};
 	const safety = classifySafety(trimmed);
 	const urgent = safety === "HIGH" || safety === "IMMINENT";
 	if (!urgent && ["查账", "确认记账", "取消记账"].includes(trimmed)) {
@@ -46,13 +53,15 @@ export async function handleInbound(
 			trimmed,
 			messageId,
 		);
-		if (direct !== null) return direct;
+		if (direct !== null)
+			return db.transaction(() => finish(direct, "command"))();
 	}
 	const intent = urgent
 		? { intent: "insight" as const }
-		: await recognizeIntent(db, config, trimmed);
+		: await recognizeIntent(db, config, trimmed, shortMemory(db, person.id));
 	return db.transaction(() => {
 		if (seen()) return "";
+		if (personFor(db, channel.id, externalId).epoch !== person.epoch) return "";
 		if (
 			intent === null ||
 			intent.intent === "clarify" ||
@@ -66,11 +75,14 @@ export async function handleInbound(
 				resourceId: channel.id,
 				detail: { intent: intent?.intent ?? "unavailable" },
 			});
-			return intent === null
-				? promptConfig.intent.unavailable
-				: intent.intent === "unsupported"
-					? promptConfig.intent.unsupported
-					: promptConfig.intent.clarification;
+			return finish(
+				intent === null
+					? promptConfig.intent.unavailable
+					: intent.intent === "unsupported"
+						? promptConfig.intent.unsupported
+						: promptConfig.intent.clarification,
+				intent?.intent ?? "unavailable",
+			);
 		}
 		let ledgerReply = "";
 		if (intent.intent === "ledger" || intent.intent === "both") {
@@ -83,7 +95,7 @@ export async function handleInbound(
 					messageId,
 					intent.entries,
 				) ?? "";
-			if (intent.intent === "ledger") return ledgerReply;
+			if (intent.intent === "ledger") return finish(ledgerReply, "ledger");
 		}
 		const now = nowIso();
 		const inboundId = randomUUID();
@@ -132,8 +144,34 @@ export async function handleInbound(
 			resourceId: id,
 			detail: { safetyLevel: safety, intent: intent.intent },
 		});
-		return intent.intent === "both" && !urgent
-			? promptConfig.mood.bothSaved
-			: [ledgerReply, reply].filter(Boolean).join("\n");
+		return finish(
+			intent.intent === "both" && !urgent
+				? promptConfig.mood.bothSaved
+				: [ledgerReply, reply].filter(Boolean).join("\n"),
+			intent.intent,
+			now,
+		);
 	})();
+}
+
+// Serialize one person's messages so a follow-up sees the preceding committed turn.
+const inboundQueues = new WeakMap<SqliteDb, Map<string, Promise<unknown>>>();
+export async function handleInbound(
+	...args: Parameters<typeof processInbound>
+): Promise<string> {
+	const [db, , channel, contact] = args;
+	let queues = inboundQueues.get(db);
+	if (!queues) {
+		queues = new Map();
+		inboundQueues.set(db, queues);
+	}
+	const key = JSON.stringify([channel.id, contact]);
+	const previous = queues.get(key) ?? Promise.resolve();
+	const task = previous.catch(() => {}).then(() => processInbound(...args));
+	queues.set(key, task);
+	try {
+		return await task;
+	} finally {
+		if (queues.get(key) === task) queues.delete(key);
+	}
 }

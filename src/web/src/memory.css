@@ -1,0 +1,174 @@
+.memory-user-picker {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 16px;
+	margin-bottom: 24px;
+	font-size: 14px;
+	color: #5e788d;
+}
+.memory-user-picker select {
+	min-height: 42px;
+	max-width: 100%;
+	border: 1px solid #dce7ed;
+	background: white;
+	color: #344a5c;
+	padding: 8px 14px;
+	border-radius: 10px;
+}
+.memory-panel {
+	background: #fff;
+	border: 1px solid #e1e8ef;
+	border-radius: 18px;
+	padding: 26px;
+	margin: 24px 0;
+	color: #33485d;
+	box-shadow: 0 5px 24px #49677d06;
+}
+.memory-heading {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 20px;
+}
+.memory-heading h2 {
+	font-size: 23px;
+	margin: 8px 0;
+	font-weight: 600;
+}
+.memory-heading p,
+.memory-meta,
+.memory-profile footer {
+	color: #728496;
+	font-size: 13px;
+}
+.memory-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 24px 0 18px;
+	border-bottom: 1px solid #e7edf2;
+	padding-bottom: 12px;
+}
+.memory-tabs button {
+	background: transparent;
+	border: 0;
+	border-radius: 9px;
+	padding: 10px 16px;
+	color: #607789;
+	cursor: pointer;
+}
+.memory-tabs button.active {
+	background: #eaf2f8;
+	color: #357aaa;
+}
+.memory-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 18px;
+	margin-bottom: 22px;
+}
+.memory-panel p {
+	line-height: 1.85;
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
+}
+.memory-panel h3 {
+	font-size: 16px;
+	font-weight: 600;
+}
+.memory-lead {
+	font-size: 16px;
+	padding: 18px 22px;
+	background: #f2f7f8;
+	border-radius: 12px;
+}
+.memory-traits {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+}
+.memory-traits article {
+	border: 1px solid #e5edf2;
+	border-radius: 12px;
+	padding: 18px;
+}
+.memory-counter,
+.memory-hint {
+	color: #748695;
+	font-size: 13px;
+}
+.memory-hint {
+	background: #f6f8fa;
+	padding: 12px;
+	border-radius: 8px;
+}
+.memory-evidence {
+	margin-top: 16px;
+	color: #688291;
+	font-size: 13px;
+}
+.memory-evidence summary {
+	cursor: pointer;
+}
+.memory-evidence blockquote {
+	margin: 12px 0;
+	padding: 8px 14px;
+	border-left: 2px solid #b6d4de;
+}
+.memory-event {
+	padding: 18px 0;
+	border-bottom: 1px solid #edf1f5;
+}
+.memory-event time,
+.memory-event small {
+	font-size: 12px;
+	color: #74899a;
+}
+.memory-kind {
+	font-size: 12px;
+	background: #eaf4f2;
+	color: #5a827b;
+	border-radius: 6px;
+	padding: 4px 8px;
+}
+.memory-danger {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	border-top: 1px solid #eef1f4;
+	margin-top: 24px;
+	padding-top: 18px;
+	font-size: 12px;
+	color: #8492a0;
+}
+.memory-empty {
+	padding: 30px 0;
+	color: #708796;
+}
+.memory-error {
+	color: #a75353;
+	background: #fff1f0;
+	padding: 12px;
+	border-radius: 8px;
+}
+@media (max-width: 620px) {
+	.memory-panel {
+		padding: 18px;
+	}
+	.memory-traits {
+		grid-template-columns: 1fr;
+	}
+	.memory-heading,
+	.memory-danger {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+	.memory-tabs {
+		gap: 4px;
+	}
+	.memory-tabs button {
+		padding: 9px;
+	}
+}

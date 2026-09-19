@@ -30,6 +30,7 @@ export async function recognizeIntent(
 	db: SqliteDb,
 	config: AppConfig,
 	text: string,
+	context?: unknown,
 ): Promise<MessageIntent | null> {
 	const model = activeSetting(db, config, "model", "regular");
 	if (!model?.secret) {
@@ -54,7 +55,7 @@ export async function recognizeIntent(
 				body: JSON.stringify({
 					model: modelName,
 					// DeepSeek V4 默认思考；分类不需要推理文本，显式关闭并约束输出。
-					...(/^deepseek-v4-(?:flash|pro)$/.test(modelName)
+					...(/^deepseek-(?:flash|v4-(?:flash|pro))$/.test(modelName)
 						? {
 								thinking: { type: "disabled" },
 								response_format: { type: "json_object" },
@@ -69,6 +70,15 @@ export async function recognizeIntent(
 								today,
 							}),
 						},
+						...(context
+							? [
+									{ role: "system", content: promptConfig.memory.context },
+									{
+										role: "user",
+										content: `当天上下文（已处理）：${JSON.stringify(context)}`,
+									},
+								]
+							: []),
 						{ role: "user", content: text },
 					],
 				}),
